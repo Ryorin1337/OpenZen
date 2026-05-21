@@ -287,7 +287,7 @@ extends HudElement {
         float spacing = 4.5f;
         float cornerRadius = 15.0f;
         float blurStrength = 0.7f;
-        String iconText = "";
+        String iconText = "\ue7fd";
         String titleText = "Playerlist";
         float iconWidth = GlHelper.getStringWidth(iconText, this.subFont);
         float titleWidth = GlHelper.getStringWidth(titleText, this.nameFont);

@@ -373,7 +373,7 @@ extends Screen {
             TextGlow.drawBackground(guiGraphics.pose(), searchX, searchY, searchWidth, searchHeight, 8.0f * this.currentScale, alpha);
             Renderer.renderConsumer((drawContext -> {
                 FontRenderer iconFont = FontPresets.materialIcons(20.0f * this.currentScale);
-                String iconText = "";
+                String iconText = "\uE8B6";
                 float iconX = (float)searchX + 12.0f * this.currentScale;
                 float iconY = (float)searchY + (float)searchHeight / 2.0f + iconFont.getMetrics().capHeight() / 2.0f - 12.0f * this.currentScale;
                 int iconColor = new Color(255, 255, 255, (int)(180.0f * alpha)).getRGB();

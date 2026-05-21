@@ -91,7 +91,7 @@ extends ClientBase {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableCull();
-        DrawContext drawContext = new DrawContext(guiGraphics);
+        DrawContext drawContext = new DrawContext(guiGraphics, guiGraphics != null ? guiGraphics.pose() : null);
         DrawContext previousCanvas = currentCanvas;
         currentCanvas = drawContext;
         try {

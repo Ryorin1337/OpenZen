@@ -113,7 +113,7 @@ extends ClientBase {
             int panelY = originY + marginY + (int)(23.0f * scale);
             int panelHeight = baseSize - 2 * marginX - (int)(20.0f * scale);
             RenderUtil.drawRoundedRect(guiGraphics.pose(), panelX, panelY, panelWidth, panelHeight, 4.0f * scale, this.applyAlpha(HOVER_BG_COLOR, alpha));
-            Renderer.renderConsumer(drawContext -> {
+            Renderer.render(guiGraphics, drawContext -> {
                 Category renderCategory = this.currentCategory;
                 List<Module> renderList = this.currentModules;
                 float slideOffset = 0.0f;
@@ -157,7 +157,7 @@ extends ClientBase {
             int panelY = originY + marginY + (int)(23.0f * scale);
             int panelHeight = baseSize - 2 * marginX - (int)(20.0f * scale);
             RenderUtil.drawRoundedRect(guiGraphics.pose(), panelX, panelY, panelWidth, panelHeight, 4.0f * scale, this.applyAlpha(HOVER_BG_COLOR, alpha));
-            Renderer.renderConsumer((drawContext -> this.renderModuleList(null, this.searchResults, panelX, panelY, panelHeight, mouseX, mouseY, alpha, false, scale)));
+            Renderer.render(guiGraphics, drawContext -> this.renderModuleList(null, this.searchResults, panelX, panelY, panelHeight, mouseX, mouseY, alpha, false, scale));
             this.renderScrollbar(guiGraphics, panelX, panelY, panelHeight, scale, alpha);
         } catch (Exception exception) {
             // empty catch block
@@ -249,7 +249,7 @@ extends ClientBase {
                     String bindName = module.getBind().getName();
                     if (!bindName.equalsIgnoreCase("None")) {
                         FontRenderer iconFont = FontPresets.materialIcons(16.0f * scale);
-                        String iconText = "";
+                        String iconText = "\uE312";
                         FontRenderer bindFont = FontPresets.axiformaRegular(16.0f * scale);
                         float bindWidth = GlHelper.getStringWidth(bindName, bindFont);
                         float iconWidth = GlHelper.getStringWidth(iconText, iconFont);
@@ -278,7 +278,7 @@ extends ClientBase {
                         int glowByte = (int)(alpha * 0.39215687f * hoverAmount);
                         int glowColor = this.applyAlpha(-3355444, (float)glowByte / 255.0f);
                         FontRenderer iconFont = FontPresets.materialIcons(16.0f * scale);
-                        String iconText = "";
+                        String iconText = "\uE312";
                         FontRenderer bindFont = FontPresets.axiformaRegular(16.0f * scale);
                         float bindWidth = GlHelper.getStringWidth(bindName, bindFont);
                         float iconWidth = GlHelper.getStringWidth(iconText, iconFont);

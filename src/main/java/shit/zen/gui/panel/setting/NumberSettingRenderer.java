@@ -233,7 +233,7 @@ implements SettingRenderer {
         int colorTo = -1;
         int iconColor = RenderUtil.lerpColorHSB(colorFrom, colorTo, progress);
         FontRenderer iconFont = FontPresets.materialIcons(iconSize);
-        String iconText = "";
+        String iconText = "\uE3C9";
         float iconTextWidth = GlHelper.getStringWidth(iconText, iconFont);
         GlyphMetrics iconMetrics = iconFont.getMetrics();
         float drawX = (float)iconX + ((float)iconSize - iconTextWidth) / 2.0f;

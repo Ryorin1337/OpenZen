@@ -77,7 +77,7 @@ extends ClientBase {
     private void drawPopupBody(DrawContext drawContext, GuiGraphics guiGraphics, int popupX, int popupY, int mouseX, int mouseY, int popupHeight, int alphaByte, float scale, int popupWidth) {
         int whiteColor = alphaByte << 24 | 0xFFFFFF;
         FontRenderer iconFont = FontPresets.materialIcons(18.0f * scale);
-        GlHelper.drawText("", (float)popupX + 15.0f * scale, (float)popupY + 16.0f * scale, iconFont, whiteColor);
+        GlHelper.drawText("\uE8B8", (float)popupX + 15.0f * scale, (float)popupY + 16.0f * scale, iconFont, whiteColor);
         FontRenderer titleFont = FontPresets.museoSans(22.0f * scale);
         String title = "ZENLESS.ZONE";
         float titleWidth = GlHelper.getStringWidth(title, titleFont);
