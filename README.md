@@ -66,6 +66,11 @@
 
 由于精神马来西亚人嘴硬，所以到底具体有没有实现，笔者暂且蒙古。
 
+### 父子相爱相杀
+精神马来西亚人在QQ群中指出，欣欣使用过外挂后门远程读取他人文件。不知作为德州骡子的许锦良见自己的亲生父亲如此指认自己作何感想。
+
+![Xinxin](./img/xinxin.png)
+
 ## 原始 Jar + Mapping
 [原始Jar](./mapping/zen-orignial.jar)
 [Mapping](./mapping/zen.mapping)
