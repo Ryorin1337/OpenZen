@@ -82,6 +82,7 @@ minecraft {
     // Default run configurations.
     // These can be tweaked, removed, or duplicated as needed.
     runs {
+
         // applies to all the run configs below
         configureEach {
             workingDirectory project.file('run')
@@ -115,6 +116,8 @@ minecraft {
             // Allow the agent to attach to itself if PatchAgent.installPatchesAndRetransform
             // needs to fall back to the Attach API.
             jvmArgs.add "-Djdk.attach.allowAttachSelf=true".toString()
+            jvmArgs.add "-Ddevauth.enabled=true"
+
         }
 
         server {
