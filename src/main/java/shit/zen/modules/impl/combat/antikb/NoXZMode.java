@@ -44,13 +44,15 @@ import shit.zen.modules.impl.combat.antikb.AntiKBMode;
 import shit.zen.modules.impl.player.Stuck;
 import shit.zen.utils.misc.ChatUtil;
 
-public class NoXZMode
-extends AntiKBMode {
+public class NoXZMode extends AntiKBMode {
     public static NoXZMode INSTANCE;
     public static boolean isAttacking;
     public static int attackCount;
     private int attackCooldown = 0;
+    
     private Entity attackTarget = null;
+    private Entity pendingTarget = null;
+    
     private int attacksRemaining = 0;
     private int flagCooldown = 0;
     private boolean shouldJump = false;
@@ -59,8 +61,8 @@ extends AntiKBMode {
     private boolean isSuspending = false;
     private int suspendTicks = 0;
     private ClientboundSetEntityMotionPacket knockbackPacket = null;
-    private final LinkedBlockingDeque<Packet<?>> packetQueue = new LinkedBlockingDeque();
-    private final LinkedBlockingDeque<Packet<?>> movePacketQueue = new LinkedBlockingDeque();
+    private final LinkedBlockingDeque<Packet<?>> packetQueue = new LinkedBlockingDeque<>();
+    private final LinkedBlockingDeque<Packet<?>> movePacketQueue = new LinkedBlockingDeque<>();
     private volatile boolean isFlushing = false;
     private float instantAttackProgress = 0.0f;
     private boolean isInstantAttacking = false;
@@ -168,7 +170,7 @@ extends AntiKBMode {
                     this.knockbackPacket = motionPacket;
                     receivePacketEvent.setCancelled(true);
                 } else if (canAttack) {
-                    this.attackTarget = target;
+                    this.pendingTarget = target;
                     this.attacksRemaining = AntiKB.INSTANCE.attackAmount.getValue().intValue();
                 } else {
                     this.isSuspending = true;
@@ -209,6 +211,7 @@ extends AntiKBMode {
 
     private void clearTarget() {
         this.attackTarget = null;
+        this.pendingTarget = null;
         this.attacksRemaining = 0;
     }
 
@@ -279,7 +282,7 @@ extends AntiKBMode {
         if (entity instanceof LivingEntity && ((livingEntity = (LivingEntity)entity).isDeadOrDying() || livingEntity.getHealth() <= 0.0f)) {
             return false;
         }
-        double maxReach = 3.7f;
+        double maxReach = this.isSuspending ? 4.2f : 3.7f;
         return !(this.getAABBDistance(entity) > maxReach);
     }
 
@@ -338,19 +341,30 @@ extends AntiKBMode {
                 boolean sprinting = mc.player.isSprinting();
                 if (onGround && canAttack && sprinting) {
                     this.isFlushing = true;
-                    this.attackTarget = target;
+                    this.pendingTarget = target;
                     this.attacksRemaining = AntiKB.INSTANCE.attackAmount.getValue().intValue();
                     this.sendMovePackets();
                     this.applyKnockbackPacket();
                     if (instantAttackEnabled && this.instantAttackProgress > 0.0f) {
                         this.attacksRemaining = (int)this.instantAttackProgress;
                         this.scheduleMotionFlush();
+
+                        if (this.pendingTarget != null && this.isValidTarget(this.pendingTarget)) {
+                            this.attackTarget = this.pendingTarget;
+                        }
+                        this.pendingTarget = null;
+
                         this.isSuspending = false;
                         this.suspendTicks = 0;
                         this.isFlushing = false;
                         this.isInstantAttacking = true;
                         ZenClient.serverTickRate = 4.0f;
                     } else {
+                        if (this.pendingTarget != null && this.isValidTarget(this.pendingTarget)) {
+                            this.attackTarget = this.pendingTarget;
+                        }
+                        this.pendingTarget = null;
+
                         this.doAttackSequence(tickEvent);
                         this.scheduleMotionFlush();
                         this.isSuspending = false;
@@ -401,15 +415,20 @@ extends AntiKBMode {
     }
 
     private void doAttackSequence(TickEvent tickEvent) {
-        if (this.attackTarget == null || !this.attackTarget.isAlive()) {
+        Entity aimed = this.getHitResultEntity();
+
+        if (this.attackTarget == null 
+            || !this.attackTarget.isAlive() 
+            || (aimed != null && aimed != this.attackTarget)) {
             this.clearTarget();
             return;
         }
-        double maxReach = 3.7f;
+        double maxReach = this.isSuspending ? 4.2f : 3.7f;
         if (this.getAABBDistance(this.attackTarget) > maxReach) {
             this.clearTarget();
             return;
         }
+        
         isAttacking = true;
         attackCount = this.attacksRemaining--;
         this.attackCooldown = 2;
@@ -451,7 +470,7 @@ extends AntiKBMode {
             return;
         }
         while (!this.movePacketQueue.isEmpty()) {
-            Packet packet = this.movePacketQueue.poll();
+            Packet<?> packet = this.movePacketQueue.poll();
             if (packet == null) continue;
             try {
                 mc.getConnection().send(packet);
@@ -488,6 +507,12 @@ extends AntiKBMode {
         this.sendMovePackets();
         this.applyKnockbackPacket();
         this.scheduleMotionFlush();
+
+        if (this.pendingTarget != null && this.isValidTarget(this.pendingTarget)) {
+            this.attackTarget = this.pendingTarget;
+        }
+        this.pendingTarget = null;
+        
         this.isFlushing = false;
         this.isSuspending = false;
         this.suspendTicks = 0;
