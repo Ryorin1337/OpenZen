@@ -72,6 +72,7 @@ public class XRay extends Module {
     private final NumberSetting scanRangeSetting = new NumberSetting("Range", 48, 16, 100, 4);
     private final NumberSetting scanIntervalSetting = new NumberSetting("Scan Delay", 500, 50, 3000, 100);
     private final BooleanSetting tracersSetting = new BooleanSetting("Tracers", true);
+    private final BooleanSetting fullBrightSetting = new BooleanSetting("FullBright", false);
     private final NumberSetting maxBlocksSetting = new NumberSetting("MaxBlocks", 80000, 10000, 500000, 10000);
     private final BooleanSetting antiFakeOreSetting = new BooleanSetting("Anti-Fake Ore", true);
     private final NumberSetting minAuthScoreSetting = new NumberSetting("Min Auth Score", 1.0, 1.0, 15.0, 0.5, this.antiFakeOreSetting::getValue);
@@ -1121,5 +1122,8 @@ public class XRay extends Module {
         AUTHENTIC,
         SUSPICIOUS,
         SCANNING
+    }
+    public boolean isFullBright() {
+        return this.fullBrightSetting.getValue();
     }
 }
