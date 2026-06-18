@@ -49,10 +49,10 @@ public class NoXZMode extends AntiKBMode {
     public static boolean isAttacking;
     public static int attackCount;
     private int attackCooldown = 0;
-    
+
     private Entity attackTarget = null;
     private Entity pendingTarget = null;
-    
+
     private int attacksRemaining = 0;
     private int flagCooldown = 0;
     private boolean shouldJump = false;
@@ -281,9 +281,8 @@ public class NoXZMode extends AntiKBMode {
         }
         if (entity instanceof LivingEntity && ((livingEntity = (LivingEntity)entity).isDeadOrDying() || livingEntity.getHealth() <= 0.0f)) {
             return false;
-        }
-        double maxReach = this.isSuspending ? 4.2f : 3.7f;
-        return !(this.getAABBDistance(entity) > maxReach);
+        };
+        return !(this.getAABBDistance(entity) > AntiKB.INSTANCE.maxReach.getValue().doubleValue());
     }
 
     @Override
@@ -417,18 +416,20 @@ public class NoXZMode extends AntiKBMode {
     private void doAttackSequence(TickEvent tickEvent) {
         Entity aimed = this.getHitResultEntity();
 
-        if (this.attackTarget == null 
-            || !this.attackTarget.isAlive() 
-            || (aimed != null && aimed != this.attackTarget)) {
+        // 增加了 aimed == null 以及 aimed != this.attackTarget 的检验。
+        // 如果视线中没有指向实体，或者指向的实体不是当前要攻击的 target，直接清空目标并取消攻击。
+        if (this.attackTarget == null
+                || !this.attackTarget.isAlive()
+                || aimed == null
+                || aimed != this.attackTarget) {
             this.clearTarget();
             return;
         }
-        double maxReach = this.isSuspending ? 4.2f : 3.7f;
-        if (this.getAABBDistance(this.attackTarget) > maxReach) {
+        if (this.getAABBDistance(this.attackTarget) > AntiKB.INSTANCE.maxReach.getValue().doubleValue()) {
             this.clearTarget();
             return;
         }
-        
+
         isAttacking = true;
         attackCount = this.attacksRemaining--;
         this.attackCooldown = 2;
@@ -512,7 +513,7 @@ public class NoXZMode extends AntiKBMode {
             this.attackTarget = this.pendingTarget;
         }
         this.pendingTarget = null;
-        
+
         this.isFlushing = false;
         this.isSuspending = false;
         this.suspendTicks = 0;
