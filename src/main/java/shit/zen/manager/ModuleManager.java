@@ -23,10 +23,7 @@ import shit.zen.modules.impl.combat.CrystalAura;
 import shit.zen.modules.impl.combat.KillAura;
 import shit.zen.modules.impl.exploit.Disabler;
 import shit.zen.modules.impl.exploit.FastPlace;
-import shit.zen.modules.impl.misc.AimAssist;
-import shit.zen.modules.impl.misc.AutoClicker;
-import shit.zen.modules.impl.misc.AutoRod;
-import shit.zen.modules.impl.misc.SafeWalk;
+import shit.zen.modules.impl.misc.*;
 import shit.zen.modules.impl.movement.CollisionSpeed;
 import shit.zen.modules.impl.movement.NoSlow;
 import shit.zen.modules.impl.movement.FastWeb;
@@ -131,6 +128,8 @@ public class ModuleManager extends ClientBase {
         this.register(new XRay());
         this.register(new EntityEditor());
 
+        this.register(new KillSay());
+        //this.register(new KillEffect());
         this.register(new AntiStaff());
         this.register(new AutoPlay());
         this.register(new AutoTools());

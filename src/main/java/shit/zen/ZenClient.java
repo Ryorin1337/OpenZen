@@ -42,7 +42,7 @@ public class ZenClient extends ClientBase {
     public static String configDir = System.getProperty("user.home") + File.separator + ".zen";
     public static String username = "";
 
-    private static final String[] CLOUD_ASSET_NAMES = { "panel.png", "ptr.png", "lie.wav", "truth.wav" };
+    private static final String[] CLOUD_ASSET_NAMES = { "panel.png", "ptr.png", "lie.wav", "truth.wav", "killsay.txt" };
 
     private EventBus eventBus;
     private RotationHandler rotationHandler;

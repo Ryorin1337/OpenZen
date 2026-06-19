@@ -1,0 +1,10 @@
+# KillSay config
+%s L
+%s fw
+%s 我喜欢你
+%s 我喜欢你♥
+%s 兄弟你好香
+%s 你好可爱
+%s 别急
+%s 你已被清朝杀手陈安健害死！快使用Hack Lunar！
+%s 你已被狂笑的蛇陈安健本人害死，快使用我编写的Hack Lunar端！
