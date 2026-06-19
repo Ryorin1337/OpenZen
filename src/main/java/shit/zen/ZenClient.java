@@ -24,29 +24,7 @@ import shit.zen.manager.HudManager;
 import shit.zen.manager.LagManager;
 import shit.zen.manager.ModuleManager;
 import shit.zen.manager.TargetManager;
-import shit.zen.patch.BlockOcclusionCachePatch;
-import shit.zen.patch.BlockPatch;
-import shit.zen.patch.ChatScreenPatch;
-import shit.zen.patch.ClientLevelPatch;
-import shit.zen.patch.ConnectionPatch;
-import shit.zen.patch.EntityPatch;
-import shit.zen.patch.EntityRendererPatch;
-import shit.zen.patch.FriendlyByteBufPatch;
-import shit.zen.patch.GameRendererPatch;
-import shit.zen.patch.HumanoidModelPatch;
-import shit.zen.patch.ItemInHandLayerPatch;
-import shit.zen.patch.ItemInHandRendererPatch;
-import shit.zen.patch.ItemPatch;
-import shit.zen.patch.KeyboardHandlerPatch;
-import shit.zen.patch.KeyboardInputPatch;
-import shit.zen.patch.LevelRendererPatch;
-import shit.zen.patch.LivingEntityPatch;
-import shit.zen.patch.LivingEntityRendererPatch;
-import shit.zen.patch.LocalPlayerPatch;
-import shit.zen.patch.MinecraftPatch;
-import shit.zen.patch.PacketUtilsPatch;
-import shit.zen.patch.PlayerPatch;
-import shit.zen.patch.PlayerTabOverlayPatch;
+import shit.zen.patch.*;
 import shit.zen.asm.Bootstrap;
 import shit.zen.utils.rotation.RotationHandler;
 
@@ -214,12 +192,6 @@ public class ZenClient extends ClientBase {
         PatchRegistry.register(FriendlyByteBufPatch.class);
         PatchRegistry.register(BlockStateBasePatch.class);
         PatchRegistry.register(EntityRenderDispatcherPatch.class);
-
-        // Compatibility patch for Embeddium/Sodium's BlockOcclusionCache.
-        // Always registered so the transformer can catch the class when it
-        // first loads. We must NOT use Class.forName() here — that would
-        // load the class before our transformer is installed, preventing
-        // the patch from ever being applied.
         PatchRegistry.register(BlockOcclusionCachePatch.class);
     }
 
