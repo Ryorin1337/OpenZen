@@ -1,5 +1,6 @@
 package shit.zen.utils.render;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -49,40 +50,40 @@ public class EntityUtil {
 
         if (fake instanceof LivingEntity fakeLiving && original instanceof LivingEntity origLiving) {
             fakeLiving.setPos(origLiving.getX(), origLiving.getY(), origLiving.getZ());
+
             fakeLiving.xo = origLiving.xo;
             fakeLiving.yo = origLiving.yo;
             fakeLiving.zo = origLiving.zo;
 
-
-            if (origLiving == net.minecraft.client.Minecraft.getInstance().player) {
-                fakeLiving.setYRot(origLiving.getYRot());
-                fakeLiving.setXRot(RotationHandler.prevSentRotation.getPitch());
-                fakeLiving.yRotO = origLiving.yRotO;
-                fakeLiving.xRotO = RotationHandler.prevSentRotation.getPitch();
-
-                fakeLiving.yBodyRot = origLiving.yBodyRot;
-                fakeLiving.yBodyRotO = origLiving.yBodyRotO;
-                fakeLiving.yHeadRot = RotationHandler.sentRotation.getYaw();
-                fakeLiving.yHeadRotO = RotationHandler.prevSentRotation.getYaw();
-                fakeLiving.setYHeadRot(RotationHandler.sentRotation.getYaw());
-            }else {
-                fakeLiving.setYRot(origLiving.getYRot());
-                fakeLiving.setXRot(origLiving.getXRot());
-                fakeLiving.yRotO = origLiving.yRotO;
-                fakeLiving.xRotO = origLiving.xRotO;
-
-                fakeLiving.yBodyRot = origLiving.yBodyRot;
-                fakeLiving.yBodyRotO = origLiving.yBodyRotO;
-                fakeLiving.yHeadRot = origLiving.yHeadRot;
-                fakeLiving.yHeadRotO = origLiving.yHeadRotO;
-                fakeLiving.setYHeadRot(origLiving.getYHeadRot());
-            }
             fakeLiving.swingTime = origLiving.swingTime;
-            fakeLiving.attackAnim = origLiving.attackAnim;     // 当前帧挥手进度
-            fakeLiving.oAttackAnim = origLiving.oAttackAnim;   // 上一帧挥手进度
+            fakeLiving.attackAnim = origLiving.attackAnim;
+            fakeLiving.oAttackAnim = origLiving.oAttackAnim;
             fakeLiving.hurtTime = origLiving.hurtTime;
             fakeLiving.hurtDuration = origLiving.hurtDuration;
             fakeLiving.deathTime = origLiving.deathTime;
+            fakeLiving.setYRot(origLiving.getYRot());
+            fakeLiving.setXRot(origLiving.getXRot());
+            fakeLiving.yRotO = origLiving.yRotO;
+            fakeLiving.xRotO = origLiving.xRotO;
+
+            fakeLiving.yBodyRot = origLiving.yBodyRot;
+            fakeLiving.yBodyRotO = origLiving.yBodyRotO;
+
+            fakeLiving.yHeadRot = origLiving.yHeadRot;
+            fakeLiving.yHeadRotO = origLiving.yHeadRotO;
+            if (origLiving == Minecraft.getInstance().player) {
+                float pitch = RotationHandler.sentRotation.getPitch();
+                float prevPitch = RotationHandler.prevSentRotation.getPitch();
+                float yaw = RotationHandler.sentRotation.getYaw();
+                float prevYaw = RotationHandler.prevSentRotation.getYaw();
+
+                fakeLiving.setXRot(pitch);
+                fakeLiving.xRotO = prevPitch;
+
+                fakeLiving.yHeadRot = yaw;
+                fakeLiving.yHeadRotO = prevYaw;
+                fakeLiving.setYHeadRot(yaw);
+            }
 
             WalkAnimationState origAnim = origLiving.walkAnimation;
             WalkAnimationState fakeAnim = fakeLiving.walkAnimation;
