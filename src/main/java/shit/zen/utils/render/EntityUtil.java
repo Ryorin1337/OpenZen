@@ -6,7 +6,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.WalkAnimationState;
 import net.minecraft.world.level.Level;
 
-import java.lang.reflect.Field;
+
+import shit.zen.utils.rotation.RotationHandler;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -52,21 +53,30 @@ public class EntityUtil {
             fakeLiving.yo = origLiving.yo;
             fakeLiving.zo = origLiving.zo;
 
-            fakeLiving.setYRot(origLiving.getYRot());
-            fakeLiving.setXRot(origLiving.getXRot());
-            fakeLiving.yRotO = origLiving.yRotO;
-            fakeLiving.xRotO = origLiving.xRotO;
 
-            fakeLiving.yBodyRot = origLiving.yBodyRot;
-            fakeLiving.yBodyRotO = origLiving.yBodyRotO;
             if (origLiving == net.minecraft.client.Minecraft.getInstance().player) {
-                fakeLiving.yHeadRot = origLiving.yBodyRot;
-                fakeLiving.yHeadRotO = origLiving.yBodyRotO;
-                fakeLiving.setYHeadRot(origLiving.yBodyRot);
+                fakeLiving.setYRot(origLiving.getYRot());
+                fakeLiving.setXRot(RotationHandler.prevSentRotation.getPitch());
+                fakeLiving.yRotO = origLiving.yRotO;
+                fakeLiving.xRotO = RotationHandler.prevSentRotation.getPitch();
+
+                fakeLiving.yBodyRot = origLiving.yBodyRot;
+                fakeLiving.yBodyRotO = origLiving.yBodyRotO;
+                fakeLiving.yHeadRot = RotationHandler.sentRotation.getYaw();
+                fakeLiving.yHeadRotO = RotationHandler.prevSentRotation.getYaw();
+                fakeLiving.setYHeadRot(RotationHandler.sentRotation.getYaw());
+            }else {
+                fakeLiving.setYRot(origLiving.getYRot());
+                fakeLiving.setXRot(origLiving.getXRot());
+                fakeLiving.yRotO = origLiving.yRotO;
+                fakeLiving.xRotO = origLiving.xRotO;
+
+                fakeLiving.yBodyRot = origLiving.yBodyRot;
+                fakeLiving.yBodyRotO = origLiving.yBodyRotO;
+                fakeLiving.yHeadRot = origLiving.yHeadRot;
+                fakeLiving.yHeadRotO = origLiving.yHeadRotO;
+                fakeLiving.setYHeadRot(origLiving.getYHeadRot());
             }
-            fakeLiving.yHeadRot = origLiving.yHeadRot;
-            fakeLiving.yHeadRotO = origLiving.yHeadRotO;
-            fakeLiving.setYHeadRot(origLiving.getYHeadRot());
             fakeLiving.swingTime = origLiving.swingTime;
             fakeLiving.attackAnim = origLiving.attackAnim;     // 当前帧挥手进度
             fakeLiving.oAttackAnim = origLiving.oAttackAnim;   // 上一帧挥手进度
