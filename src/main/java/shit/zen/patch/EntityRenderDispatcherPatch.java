@@ -61,6 +61,7 @@ public class EntityRenderDispatcherPatch {
         Entity fake = EntityUtil.create(entity, target);
         if (fake == null)
             return;
+        fake.setBoundingBox(entity.getBoundingBox());
         if (fake instanceof LivingEntity && entity instanceof LivingEntity) {
             LivingEntity fakeLiving = (LivingEntity) fake;
             LivingEntity original = (LivingEntity) entity;
