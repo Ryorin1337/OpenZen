@@ -189,6 +189,7 @@ public class ZenClient extends ClientBase {
         PatchRegistry.register(PlayerTabOverlayPatch.class);
         PatchRegistry.register(FriendlyByteBufPatch.class);
         PatchRegistry.register(BlockStateBasePatch.class);
+        PatchRegistry.register(EntityRenderDispatcherPatch.class);
     }
 
     public static Minecraft getMcInstance() {
