@@ -126,7 +126,7 @@ public class KillSay extends Module {
     private void loadFile() {
         try {
             if (!file.exists()) {
-                ChatUtil.print("No killsay file found creating....");
+                ChatUtil.print("No killsay file found, creating....");
                 createDefault();
             }
             messages.clear();
