@@ -153,6 +153,7 @@ public class KillSay extends Module {
 
         } catch (Exception e) {
         ChatUtil.print("Error while loading killsay file ");
+        this.setEnabled(false);
         }
     }
     private void createDefault() throws IOException {
