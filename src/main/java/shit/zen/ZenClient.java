@@ -42,7 +42,7 @@ public class ZenClient extends ClientBase {
     public static String configDir = System.getProperty("user.home") + File.separator + ".zen";
     public static String username = "";
 
-    private static final String[] CLOUD_ASSET_NAMES = { "panel.png", "ptr.png", "lie.wav", "truth.wav", "killsay.txt" };
+    private static final String[] CLOUD_ASSET_NAMES = { "panel.png", "ptr.png", "lie.wav", "truth.wav", "killsay.txt","self_skin.png", "other_skin.png" };
 
     private EventBus eventBus;
     private RotationHandler rotationHandler;
@@ -193,6 +193,7 @@ public class ZenClient extends ClientBase {
         PatchRegistry.register(BlockStateBasePatch.class);
         PatchRegistry.register(EntityRenderDispatcherPatch.class);
         PatchRegistry.register(BlockOcclusionCachePatch.class);
+        PatchRegistry.register(SkinChangePatch.class);
     }
 
     public static Minecraft getMcInstance() {
