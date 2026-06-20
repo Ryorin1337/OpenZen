@@ -80,11 +80,14 @@ public class InventoryManager extends Module {
     private final NumberSetting pickaxeSlotSetting = new NumberSetting("Pickaxe Slot", 0, 0, 9, 1);
     private final NumberSetting bowSlotSetting = new NumberSetting("Bow Slot", 0, 0, 9, 1);
     private final NumberSetting waterBucketSlotSetting = new NumberSetting("Water Bucket Slot", 0, 0, 9, 1);
+    private final NumberSetting lavaBucketSlotSetting = new NumberSetting("Lava Bucket Slot", 0, 0, 9, 1);
     private final NumberSetting pearlSlotSetting = new NumberSetting("Ender Pearl Slot", 0, 0, 9, 1);
     private final NumberSetting goldenAppleSlotSetting = new NumberSetting("Golden Apple Slot", 0, 0, 9, 1);
     private final NumberSetting eggsSnowballsSlotSetting = new NumberSetting("Eggs & Snowballs Slot", 0, 0, 9, 1);
     private final NumberSetting slimeBallSlotSetting = new NumberSetting("Slime Ball Slot", 0, 0, 9, 1);
     private final NumberSetting crystalSlotSetting = new NumberSetting("Crystal Slot", 0, 0, 9, 1);
+    private final NumberSetting cobwebSlotSetting = new NumberSetting("Cobweb Slot", 0, 0, 9, 1);
+
 
     private static final Timer actionTimer = new Timer();
 
@@ -136,6 +139,10 @@ public class InventoryManager extends Module {
             this.sprintWaitTicks = 0;
         }
 
+        if (!this.inventoryOnlySetting.getValue()) {
+            return;
+        }
+
         if (!GuiMove.INSTANCE.isEnabled()) {
             if (this.didInventoryAction && !this.inventoryOnlySetting.getValue()) {
                 if (packet instanceof ServerboundMovePlayerPacket) {
@@ -170,13 +177,11 @@ public class InventoryManager extends Module {
             }
         }
 
-        // If another container is on screen (chest / furnace / etc.) leave its
-        // packets alone - we only proxy our own InventoryMenu traffic.
         boolean externalContainerOpen = mc.screen instanceof AbstractContainerScreen acs
                 && acs.getMenu().containerId != mc.player.inventoryMenu.containerId;
         if (!externalContainerOpen
                 && (packet instanceof ServerboundContainerClickPacket
-                        || packet instanceof ServerboundContainerClosePacket)) {
+                || packet instanceof ServerboundContainerClosePacket)) {
             ChatUtil.print("Cancelled Inventory Packet: " + packet.getClass().getName());
             event.setCancelled(true);
             Packet<ServerGamePacketListener> typed = (Packet<ServerGamePacketListener>) packet;
@@ -190,6 +195,9 @@ public class InventoryManager extends Module {
                 || this.inventoryOnlySetting.getValue()
                 || !GuiMove.INSTANCE.isEnabled()
                 || mc.player == null) {
+            return;
+        }
+        if (!this.inventoryOnlySetting.getValue()) {
             return;
         }
         if (this.pendingPackets.isEmpty()) {
@@ -224,9 +232,11 @@ public class InventoryManager extends Module {
         entries.add(Pair.of(this.pickaxeSlotSetting.getValue().intValue() != 0, this.pickaxeSlotSetting));
         entries.add(Pair.of(this.bowSlotSetting.getValue().intValue() != 0, this.bowSlotSetting));
         entries.add(Pair.of(this.waterBucketSlotSetting.getValue().intValue() != 0, this.waterBucketSlotSetting));
+        entries.add(Pair.of(this.lavaBucketSlotSetting.getValue().intValue() != 0, this.lavaBucketSlotSetting));
         entries.add(Pair.of(this.pearlSlotSetting.getValue().intValue() != 0, this.pearlSlotSetting));
         entries.add(Pair.of(this.slimeBallSlotSetting.getValue().intValue() != 0, this.slimeBallSlotSetting));
         entries.add(Pair.of(this.crystalSlotSetting.getValue().intValue() != 0, this.crystalSlotSetting));
+        entries.add(Pair.of(this.cobwebSlotSetting.getValue().intValue() != 0, this.cobwebSlotSetting));
         entries.add(Pair.of(this.eggsSnowballsSlotSetting.getValue().intValue() != 0, this.eggsSnowballsSlotSetting));
         if (!"Golden Apple".equals(this.offhandItemSetting.getValue())) {
             entries.add(Pair.of(this.goldenAppleSlotSetting.getValue().intValue() != 0, this.goldenAppleSlotSetting));
@@ -260,7 +270,8 @@ public class InventoryManager extends Module {
             return;
         }
 
-        if (MovementUtil.isInputActive()) {
+        boolean isMoving = MovementUtil.isInputActive();
+        if (isMoving) {
             this.idleTicks = 0;
         } else {
             this.idleTicks++;
@@ -278,6 +289,25 @@ public class InventoryManager extends Module {
         }
         if (menu instanceof FurnaceMenu || menu instanceof BrewingStandMenu) {
             externalContainerOpen = true;
+        }
+
+        if (!this.inventoryOnlySetting.getValue()) {
+            if (isMoving) {
+                isPerformingAction = false;
+                this.pendingOffhandPlace = false;
+                this.sprintWaitTicks = 0;
+                return;
+            }
+            if (externalContainerOpen || ChestStealer.isRateLimited() || Scaffold.INSTANCE.isEnabled()) {
+                isPerformingAction = false;
+                return;
+            }
+            if (this.performInventoryAction()) {
+                isPerformingAction = true;
+            } else {
+                isPerformingAction = false;
+            }
+            return;
         }
 
         boolean blockedByMode = this.inventoryOnlySetting.getValue()
@@ -316,45 +346,11 @@ public class InventoryManager extends Module {
     }
 
     private boolean performInventoryAction() {
-        // --- auto armor: drop bad armor we're wearing ---
         if (this.autoArmorSetting.getValue()) {
-            for (int i = 0; i < mc.player.getInventory().armor.size(); i++) {
-                ItemStack equipped = mc.player.getInventory().armor.get(i);
-                if (equipped.getItem() instanceof ArmorItem armor
-                        && !equipped.isEmpty()
-                        && actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())
-                        && ItemUtil.getBestArmorScore(armor.getEquipmentSlot()) > ItemUtil.getArmorScore(equipped)) {
-                    mc.gameMode.handleInventoryMouseClick(
-                            mc.player.inventoryMenu.containerId,
-                            4 + (4 - i), 1, ClickType.THROW, mc.player);
-                    this.didInventoryAction = true;
-                    actionTimer.reset();
-                    return true;
-                }
-            }
-            // --- auto armor: equip best armor in inventory ---
-            for (int i = 0; i < mc.player.getInventory().items.size(); i++) {
-                ItemStack candidate = mc.player.getInventory().items.get(i);
-                if (candidate.isEmpty() || !(candidate.getItem() instanceof ArmorItem armor)) continue;
-                float candidateScore = ItemUtil.getArmorScore(candidate);
-                boolean isBest = ItemUtil.getBestArmorScore(armor.getEquipmentSlot()) == candidateScore;
-                boolean betterThanEquipped = ItemUtil.getEquippedArmorScore(armor.getEquipmentSlot()) < candidateScore;
-                if (isBest && betterThanEquipped
-                        && actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) {
-                    int target = i < 9 ? i + 36 : i;
-                    mc.gameMode.handleInventoryMouseClick(
-                            mc.player.inventoryMenu.containerId,
-                            target, 0, ClickType.QUICK_MOVE, mc.player);
-                    this.didInventoryAction = true;
-                    actionTimer.reset();
-                    return true;
-                }
-            }
+            if (handleArmor()) return true;
         }
 
-        // --- finish a pending offhand swap from the previous tick ---
-        if (this.pendingOffhandPlace
-                && actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) {
+        if (this.pendingOffhandPlace && actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) {
             mc.gameMode.handleInventoryMouseClick(mc.player.inventoryMenu.containerId,
                     45, 0, ClickType.PICKUP, mc.player);
             this.didInventoryAction = true;
@@ -362,76 +358,142 @@ public class InventoryManager extends Module {
             actionTimer.reset();
         }
 
-        // --- offhand preference ---
-        String offhandPref = this.offhandItemSetting.getValue();
-        if ("Golden Apple".equals(offhandPref)) {
-            ItemStack offhand = mc.player.getInventory().offhand.get(0);
-            int slot = ItemUtil.getSlot(Items.GOLDEN_APPLE);
-            if (slot != -1 && actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) {
-                if (offhand.getItem() != Items.GOLDEN_APPLE) {
-                    this.moveToOffhand(slot);
-                    return true;
-                }
-                ItemStack invStack = mc.player.getInventory().items.get(slot);
-                if (offhand.getCount() + invStack.getCount() <= 64) {
-                    int target = slot < 9 ? slot + 36 : slot;
-                    mc.gameMode.handleInventoryMouseClick(mc.player.inventoryMenu.containerId,
-                            target, 0, ClickType.PICKUP, mc.player);
-                    this.didInventoryAction = true;
-                    this.pendingOffhandPlace = true;
-                    actionTimer.reset();
-                    return true;
-                }
-            }
-        } else if ("Projectile".equals(offhandPref)) {
-            ItemStack offhand = mc.player.getInventory().offhand.get(0);
-            ItemStack bestProjectile = ItemUtil.getBestProjectile();
-            if (bestProjectile != null) {
-                int slot = ItemUtil.getSlot(bestProjectile);
-                boolean shouldSwap;
-                if (offhand.getItem() != Items.EGG && offhand.getItem() != Items.SNOWBALL) {
-                    shouldSwap = true;
-                } else {
-                    shouldSwap = offhand.getCount() < bestProjectile.getCount();
-                }
-                if (shouldSwap && slot != -1
-                        && actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) {
-                    this.moveToOffhand(slot);
-                    return true;
-                }
-            }
-        } else if ("Fishing Rod".equals(offhandPref)) {
-            ItemStack offhand = mc.player.getInventory().offhand.get(0);
-            int slot = ItemUtil.getSlot(Items.FISHING_ROD);
-            if (slot != -1
-                    && actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())
-                    && offhand.getItem() != Items.FISHING_ROD) {
-                this.moveToOffhand(slot);
+        if (handleOffhand()) return true;
+
+        if (handleHotbarSlots()) return true;
+
+        if (handleExcessItems()) return true;
+
+        List<Integer> order = IntStream.range(0, mc.player.getInventory().items.size())
+                .boxed().collect(Collectors.toList());
+        Collections.shuffle(order);
+        for (Integer idx : order) {
+            ItemStack stack = mc.player.getInventory().items.get(idx);
+            if (!stack.isEmpty() && !this.isUsefulItem(stack)) {
+                this.throwItem(stack);
                 return true;
             }
-        } else if ("Block".equals(offhandPref)) {
-            ItemStack offhand = mc.player.getInventory().offhand.get(0);
-            ItemStack bestBlock = ItemUtil.getBestBlock();
-            if (bestBlock != null) {
-                int slot = ItemUtil.getSlot(bestBlock);
-                boolean shouldSwap;
-                if (BlockUtil.isPlaceable(offhand)) {
-                    shouldSwap = offhand.getCount() < bestBlock.getCount();
-                } else {
-                    shouldSwap = true;
-                }
-                if (shouldSwap && slot != -1
-                        && actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) {
-                    this.moveToOffhand(slot);
-                    return true;
-                }
+        }
+        return false;
+    }
+
+    private boolean handleArmor() {
+        for (int i = 0; i < mc.player.getInventory().armor.size(); i++) {
+            ItemStack equipped = mc.player.getInventory().armor.get(i);
+            if (equipped.getItem() instanceof ArmorItem armor && !equipped.isEmpty()
+                    && actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())
+                    && ItemUtil.getBestArmorScore(armor.getEquipmentSlot()) > ItemUtil.getArmorScore(equipped)) {
+                mc.gameMode.handleInventoryMouseClick(mc.player.inventoryMenu.containerId,
+                        4 + (4 - i), 1, ClickType.THROW, mc.player);
+                this.didInventoryAction = true;
+                actionTimer.reset();
+                return true;
             }
         }
+        for (int i = 0; i < mc.player.getInventory().items.size(); i++) {
+            ItemStack candidate = mc.player.getInventory().items.get(i);
+            if (candidate.isEmpty() || !(candidate.getItem() instanceof ArmorItem armor)) continue;
+            float candidateScore = ItemUtil.getArmorScore(candidate);
+            boolean isBest = ItemUtil.getBestArmorScore(armor.getEquipmentSlot()) == candidateScore;
+            boolean betterThanEquipped = ItemUtil.getEquippedArmorScore(armor.getEquipmentSlot()) < candidateScore;
+            if (isBest && betterThanEquipped && actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) {
+                int target = i < 9 ? i + 36 : i;
+                mc.gameMode.handleInventoryMouseClick(mc.player.inventoryMenu.containerId,
+                        target, 0, ClickType.QUICK_MOVE, mc.player);
+                this.didInventoryAction = true;
+                actionTimer.reset();
+                return true;
+            }
+        }
+        return false;
+    }
 
-        // --- hotbar slot assignments ---
+    private boolean handleOffhand() {
+        String pref = this.offhandItemSetting.getValue();
+        return switch (pref) {
+            case "Golden Apple" -> handleOffhandGoldenApple();
+            case "Projectile" -> handleOffhandProjectile();
+            case "Fishing Rod" -> handleOffhandFishingRod();
+            case "Block" -> handleOffhandBlock();
+            default -> false;
+        };
+    }
+
+    private boolean handleOffhandGoldenApple() {
+        ItemStack offhand = mc.player.getInventory().offhand.get(0);
+        int slot = ItemUtil.getSlot(Items.GOLDEN_APPLE);
+        if (slot == -1 || !actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) return false;
+        if (offhand.getItem() != Items.GOLDEN_APPLE) {
+            moveToOffhand(slot);
+            return true;
+        }
+        ItemStack invStack = mc.player.getInventory().items.get(slot);
+        if (offhand.getCount() + invStack.getCount() <= 64) {
+            int target = slot < 9 ? slot + 36 : slot;
+            mc.gameMode.handleInventoryMouseClick(mc.player.inventoryMenu.containerId,
+                    target, 0, ClickType.PICKUP, mc.player);
+            this.didInventoryAction = true;
+            this.pendingOffhandPlace = true;
+            actionTimer.reset();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean handleOffhandProjectile() {
+        ItemStack offhand = mc.player.getInventory().offhand.get(0);
+        ItemStack best = ItemUtil.getBestProjectile();
+        if (best == null) return false;
+        int slot = ItemUtil.getSlot(best);
+        if (slot == -1 || !actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) return false;
+        boolean shouldSwap;
+        if (offhand.getItem() != Items.EGG && offhand.getItem() != Items.SNOWBALL) {
+            shouldSwap = true;
+        } else {
+            shouldSwap = offhand.getCount() < best.getCount();
+        }
+        if (shouldSwap) {
+            moveToOffhand(slot);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean handleOffhandFishingRod() {
+        ItemStack offhand = mc.player.getInventory().offhand.get(0);
+        int slot = ItemUtil.getSlot(Items.FISHING_ROD);
+        if (slot != -1 && actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())
+                && offhand.getItem() != Items.FISHING_ROD) {
+            moveToOffhand(slot);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean handleOffhandBlock() {
+        ItemStack offhand = mc.player.getInventory().offhand.get(0);
+        ItemStack bestBlock = ItemUtil.getBestBlock();
+        if (bestBlock == null) return false;
+        int slot = ItemUtil.getSlot(bestBlock);
+        if (slot == -1 || !actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) return false;
+        boolean shouldSwap;
+        if (BlockUtil.isPlaceable(offhand)) {
+            shouldSwap = offhand.getCount() < bestBlock.getCount();
+        } else {
+            shouldSwap = true;
+        }
+        if (shouldSwap) {
+            moveToOffhand(slot);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean handleHotbarSlots() {
         if (!"Golden Apple".equals(this.offhandItemSetting.getValue())
                 && this.goldenAppleSlotSetting.getValue().intValue() != 0) {
-            this.swapItemToSlot(this.goldenAppleSlotSetting.getValue().intValue() - 1, Items.GOLDEN_APPLE);
+            if (swapItemToSlot(this.goldenAppleSlotSetting.getValue().intValue() - 1, Items.GOLDEN_APPLE))
+                return true;
         }
 
         if (this.blockSlotSetting.getValue().intValue() != 0) {
@@ -441,41 +503,25 @@ public class InventoryManager extends Module {
             if (bestBlock != null
                     && (bestBlock.getCount() > current.getCount() || !BlockUtil.isPlaceable(current))
                     && !"Block".equals(this.offhandItemSetting.getValue())
-                    && this.swapToSlot(slot, bestBlock)) {
+                    && swapToSlot(slot, bestBlock)) {
                 return true;
             }
         }
 
-        if (ItemUtil.countBlocks() > this.maxBlockSizeSetting.getValue().intValue()) {
-            if (this.throwItem(ItemUtil.getWorstBlock())) return true;
-        }
-        if (ItemUtil.countFood() > this.maxFoodSizeSetting.getValue().intValue()) {
-            if (this.throwItem(ItemUtil.getBestFoodStack())) return true;
-        }
-        if (ItemUtil.countFishingRods() > this.maxRodSizeSetting.getValue().intValue()) {
-            if (this.throwItem(ItemUtil.getFishingRodStack())) return true;
-        }
-        if (ItemUtil.countItem(Items.EGG) + ItemUtil.countItem(Items.SNOWBALL)
-                > this.maxEggsSnowballsSetting.getValue().intValue()) {
-            if (this.throwItem(ItemUtil.getWorstProjectile())) return true;
-        }
-
         if (this.swordSlotSetting.getValue().intValue() != 0) {
-            ItemStack bestSword = ItemUtil.getBestSword();
             int slot = this.swordSlotSetting.getValue().intValue() - 1;
             ItemStack current = mc.player.getInventory().items.get(slot);
+            ItemStack bestSword = ItemUtil.getBestSword();
             ItemStack bestSharpAxe = ItemUtil.getBestSharpAxe();
-            if (ItemUtil.getAxeDamage(bestSharpAxe) > ItemUtil.getSwordDamage(bestSword)) {
+            if (bestSharpAxe != null && ItemUtil.getAxeDamage(bestSharpAxe) > ItemUtil.getSwordDamage(bestSword)) {
                 bestSword = bestSharpAxe;
             }
             if (bestSword != null) {
                 float currentDamage = current.getItem() instanceof SwordItem
-                        ? ItemUtil.getSwordDamage(current)
-                        : ItemUtil.getAxeDamage(current);
+                        ? ItemUtil.getSwordDamage(current) : ItemUtil.getAxeDamage(current);
                 float candidateDamage = bestSword.getItem() instanceof SwordItem
-                        ? ItemUtil.getSwordDamage(bestSword)
-                        : ItemUtil.getAxeDamage(bestSword);
-                if (candidateDamage > currentDamage && this.swapToSlot(slot, bestSword)) {
+                        ? ItemUtil.getSwordDamage(bestSword) : ItemUtil.getAxeDamage(bestSword);
+                if (candidateDamage > currentDamage && swapToSlot(slot, bestSword)) {
                     return true;
                 }
             }
@@ -485,11 +531,10 @@ public class InventoryManager extends Module {
             int slot = this.pickaxeSlotSetting.getValue().intValue() - 1;
             ItemStack bestPickaxe = ItemUtil.getBestPickaxe();
             ItemStack current = mc.player.getInventory().items.get(slot);
-            if (bestPickaxe != null
-                    && bestPickaxe.getItem() instanceof PickaxeItem
+            if (bestPickaxe != null && bestPickaxe.getItem() instanceof PickaxeItem
                     && (ItemUtil.getDigSpeed(bestPickaxe) > ItemUtil.getDigSpeed(current)
-                            || !(current.getItem() instanceof PickaxeItem))
-                    && this.swapToSlot(slot, bestPickaxe)) {
+                    || !(current.getItem() instanceof PickaxeItem))
+                    && swapToSlot(slot, bestPickaxe)) {
                 return true;
             }
         }
@@ -497,14 +542,14 @@ public class InventoryManager extends Module {
         if (this.bowSlotSetting.getValue().intValue() != 0) {
             int slot = this.bowSlotSetting.getValue().intValue() - 1;
             ItemStack current = mc.player.getInventory().items.get(slot);
-            ItemStack bestBow;
-            float bestScore;
-            float currentScore;
-            if ("Crossbow".equals(this.bowPrioritySetting.getValue())) {
+            ItemStack bestBow = null;
+            float bestScore = 0, currentScore = 0;
+            String priority = this.bowPrioritySetting.getValue();
+            if ("Crossbow".equals(priority)) {
                 bestBow = ItemUtil.getBestCrossbow();
                 bestScore = ItemUtil.getCrossbowScore(bestBow);
                 currentScore = ItemUtil.getCrossbowScore(current);
-            } else if ("Power Bow".equals(this.bowPrioritySetting.getValue())) {
+            } else if ("Power Bow".equals(priority)) {
                 bestBow = ItemUtil.getBestBowAlt();
                 bestScore = ItemUtil.getBowScoreAlt(bestBow);
                 currentScore = ItemUtil.getBowScoreAlt(current);
@@ -528,52 +573,75 @@ public class InventoryManager extends Module {
                 bestScore = ItemUtil.getBowScore(bestBow);
                 currentScore = ItemUtil.getBowScore(current);
             }
-            if (bestBow != null && bestScore > currentScore && this.swapToSlot(slot, bestBow)) {
+            if (bestBow != null && bestScore > currentScore && swapToSlot(slot, bestBow)) {
                 return true;
             }
             if (ItemUtil.countItem(Items.ARROW) > 256) {
-                if (this.throwItem(ItemUtil.getArrowStack())) return true;
+                if (throwItem(ItemUtil.getArrowStack())) return true;
             }
         }
 
         if (this.axeSlotSetting.getValue().intValue() != 0) {
-            ItemStack bestAxe = ItemUtil.getBestAxe();
-            if (this.swapToSlot(this.axeSlotSetting.getValue().intValue() - 1, bestAxe)) {
-                return true;
-            }
+            if (swapToSlot(this.axeSlotSetting.getValue().intValue() - 1, ItemUtil.getBestAxe())) return true;
         }
 
-        if (this.eggsSnowballsSlotSetting.getValue().intValue() != 0
-                && this.swapToSlot(this.eggsSnowballsSlotSetting.getValue().intValue() - 1,
-                        ItemUtil.getBestProjectile())) {
-            return true;
-        }
-        if (this.pearlSlotSetting.getValue().intValue() != 0
-                && this.swapItemToSlot(this.pearlSlotSetting.getValue().intValue() - 1, Items.ENDER_PEARL)) {
-            return true;
-        }
-        if (this.waterBucketSlotSetting.getValue().intValue() != 0
-                && this.swapItemToSlot(this.waterBucketSlotSetting.getValue().intValue() - 1, Items.WATER_BUCKET)) {
-            return true;
-        }
-        if (this.slimeBallSlotSetting.getValue().intValue() != 0
-                && this.swapItemToSlot(this.slimeBallSlotSetting.getValue().intValue() - 1, Items.SLIME_BALL)) {
-            return true;
-        }
-        if (this.crystalSlotSetting.getValue().intValue() != 0
-                && this.swapItemToSlot(this.crystalSlotSetting.getValue().intValue() - 1, Items.END_CRYSTAL)) {
-            return true;
+        if (this.eggsSnowballsSlotSetting.getValue().intValue() != 0) {
+            if (swapToSlot(this.eggsSnowballsSlotSetting.getValue().intValue() - 1, ItemUtil.getBestProjectile()))
+                return true;
         }
 
-        // --- last resort: drop the first useless thing we run into ---
-        List<Integer> order = IntStream.range(0, mc.player.getInventory().items.size())
-                .boxed().collect(Collectors.toList());
-        Collections.shuffle(order);
-        for (Integer idx : order) {
-            ItemStack stack = mc.player.getInventory().items.get(idx);
-            if (!stack.isEmpty() && !this.isUsefulItem(stack)) {
-                this.throwItem(stack);
-                return true;
+        if (this.pearlSlotSetting.getValue().intValue() != 0) {
+            if (swapItemToSlot(this.pearlSlotSetting.getValue().intValue() - 1, Items.ENDER_PEARL)) return true;
+        }
+
+        if (this.waterBucketSlotSetting.getValue().intValue() != 0) {
+            if (swapItemToSlot(this.waterBucketSlotSetting.getValue().intValue() - 1, Items.WATER_BUCKET)) return true;
+        }
+
+        if (this.lavaBucketSlotSetting.getValue().intValue() != 0) {
+            if (swapItemToSlot(this.lavaBucketSlotSetting.getValue().intValue() - 1, Items.LAVA_BUCKET)) return true;
+        }
+
+        if (this.slimeBallSlotSetting.getValue().intValue() != 0) {
+            if (swapItemToSlot(this.slimeBallSlotSetting.getValue().intValue() - 1, Items.SLIME_BALL)) return true;
+        }
+
+        if (this.crystalSlotSetting.getValue().intValue() != 0) {
+            if (swapItemToSlot(this.crystalSlotSetting.getValue().intValue() - 1, Items.END_CRYSTAL)) return true;
+        }
+
+        if (this.cobwebSlotSetting.getValue().intValue() != 0) {
+            if (swapItemToSlot(this.cobwebSlotSetting.getValue().intValue() - 1, Items.COBWEB)) return true;
+        }
+
+        return false;
+    }
+
+    private boolean handleExcessItems() {
+        if (ItemUtil.countBlocks() > this.maxBlockSizeSetting.getValue().intValue()) {
+            if (throwItem(ItemUtil.getWorstBlock())) return true;
+        }
+        if (ItemUtil.countFood() > this.maxFoodSizeSetting.getValue().intValue()) {
+            if (throwItem(ItemUtil.getBestFoodStack())) return true;
+        }
+        if (ItemUtil.countFishingRods() > this.maxRodSizeSetting.getValue().intValue()) {
+            if (throwItem(ItemUtil.getFishingRodStack())) return true;
+        }
+        if (ItemUtil.countItem(Items.EGG) + ItemUtil.countItem(Items.SNOWBALL)
+                > this.maxEggsSnowballsSetting.getValue().intValue()) {
+            if (throwItem(ItemUtil.getWorstProjectile())) return true;
+        }
+        if (ItemUtil.countItem(Items.LAVA_BUCKET) > getMaxLavaBuckets()) {
+            int slot = ItemUtil.getSlot(Items.LAVA_BUCKET);
+            if (slot != -1) {
+                ItemStack stack = mc.player.getInventory().items.get(slot);
+                if (stack.getCount() > 1) {
+                    mc.gameMode.handleInventoryMouseClick(mc.player.inventoryMenu.containerId,
+                            slot < 9 ? slot + 36 : slot, 1, ClickType.THROW, mc.player);
+                    actionTimer.reset();
+                    this.didInventoryAction = true;
+                    return true;
+                }
             }
         }
         return false;
@@ -606,9 +674,9 @@ public class InventoryManager extends Module {
     }
 
     private boolean swapToSlot(int targetSlot, ItemStack stack) {
-        if (mc.gameMode == null || mc.player == null) return false;
+        if (mc.gameMode == null || mc.player == null || stack == null) return false;
         ItemStack current = mc.player.getInventory().items.get(targetSlot);
-        if (!ItemUtil.isUsable(current) || stack == current
+        if (!ItemUtil.isUsable(current) || stack.equals(current)
                 || !actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) {
             return false;
         }
@@ -625,8 +693,7 @@ public class InventoryManager extends Module {
     private boolean swapItemToSlot(int targetSlot, Item item) {
         if (mc.gameMode == null || mc.player == null) return false;
         ItemStack current = mc.player.getInventory().items.get(targetSlot);
-        if (!ItemUtil.isUsable(current)
-                || !actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) {
+        if (!ItemUtil.isUsable(current) || !actionTimer.hasPassed(this.actionDelaySetting.getValue().intValue())) {
             return false;
         }
         int source = ItemUtil.getSlot(item);
@@ -674,18 +741,18 @@ public class InventoryManager extends Module {
             if (ItemUtil.getEquippedArmorScore(armor.getEquipmentSlot()) >= score) return false;
             return score >= ItemUtil.getBestArmorScore(armor.getEquipmentSlot());
         }
-        if (stack.getItem() instanceof SwordItem)   return ItemUtil.getBestSword() == stack;
+        if (stack.getItem() instanceof SwordItem) return ItemUtil.getBestSword() == stack;
         if (stack.getItem() instanceof PickaxeItem) return ItemUtil.getBestPickaxe() == stack;
         if (stack.getItem() instanceof AxeItem && !ItemUtil.isLegitAxe(stack)) {
             return ItemUtil.getBestAxe() == stack;
         }
-        if (stack.getItem() instanceof ShovelItem)   return ItemUtil.getBestShovel() == stack;
+        if (stack.getItem() instanceof ShovelItem) return ItemUtil.getBestShovel() == stack;
         if (stack.getItem() instanceof CrossbowItem) return ItemUtil.getBestCrossbow() == stack;
-        if (stack.getItem() instanceof BowItem && ItemUtil.isGoodBow(stack))    return ItemUtil.getBestBow() == stack;
+        if (stack.getItem() instanceof BowItem && ItemUtil.isGoodBow(stack)) return ItemUtil.getBestBow() == stack;
         if (stack.getItem() instanceof BowItem && ItemUtil.isGoodBowAlt(stack)) return ItemUtil.getBestBowAlt() == stack;
         if (stack.getItem() instanceof BowItem && ItemUtil.countItem(Items.BOW) > 1) return false;
         if (stack.getItem() == Items.WATER_BUCKET && ItemUtil.countItem(Items.WATER_BUCKET) > getMaxWaterBuckets()) return false;
-        if (stack.getItem() == Items.LAVA_BUCKET && ItemUtil.countItem(Items.LAVA_BUCKET)   > getMaxLavaBuckets())  return false;
+        if (stack.getItem() == Items.LAVA_BUCKET && ItemUtil.countItem(Items.LAVA_BUCKET) > getMaxLavaBuckets()) return false;
         if (stack.getItem() instanceof FishingRodItem && ItemUtil.countItem(Items.FISHING_ROD) > 1) return false;
         if (stack.getItem() instanceof ItemNameBlockItem) return false;
         return ItemUtil.isUsableItem(stack);
