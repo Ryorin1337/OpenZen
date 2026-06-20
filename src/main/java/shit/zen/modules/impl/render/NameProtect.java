@@ -5,7 +5,6 @@ import java.util.Random;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.StringUtils;
-import shit.zen.ZenClient;
 import shit.zen.event.impl.ChatReceiveEvent;
 import shit.zen.event.impl.DisconnectEvent;
 import shit.zen.modules.Category;
@@ -13,8 +12,7 @@ import shit.zen.modules.Module;
 import shit.zen.settings.impl.ModeSetting;
 import shit.zen.event.EventTarget;
 
-public class NameProtect
-extends Module {
+public class NameProtect extends Module {
     public static NameProtect INSTANCE;
     private final ModeSetting modeSetting = new ModeSetting("Mode", "Fixed", "Random").withDefault("Fixed");
     private String cachedRandomName = null;
@@ -25,20 +23,26 @@ extends Module {
         INSTANCE = this;
     }
 
+    @Override
+    protected void onDisable() {
+        this.cachedRandomName = null;
+        super.onDisable();
+    }
+
     @EventTarget
     public void onDisconnect(DisconnectEvent disconnectEvent) {
+        if (!this.isEnabled()) return;
+
         if (this.modeSetting.is("Random")) {
             this.cachedRandomName = null;
         }
     }
 
     public static String replacePlayerName(String string) {
-        if (INSTANCE == null) {
+        if (INSTANCE == null || !INSTANCE.isEnabled() || mc.player == null) {
             return string;
         }
-        if (mc.player == null) {
-            return string;
-        }
+
         String string2 = mc.player.getName().getString();
         String string3 = INSTANCE.generateRandomName();
         if (string3 != null && !string3.equals(string2) && string.contains(string2)) {
@@ -48,9 +52,10 @@ extends Module {
     }
 
     public static String getProtectedName() {
-        if (mc.player == null) {
+        if (INSTANCE == null || !INSTANCE.isEnabled() || mc.player == null) {
             return mc.player != null ? mc.player.getName().getString() : "Player";
         }
+
         String string = mc.player.getName().getString();
         String string2 = INSTANCE.generateRandomName();
         if (string2 != null && !string2.equals(string)) {
@@ -82,6 +87,8 @@ extends Module {
 
     @EventTarget
     public void onChatReceive(ChatReceiveEvent chatReceiveEvent) {
+        if (!this.isEnabled()) return;
+
         chatReceiveEvent.setComponent(Component.literal(NameProtect.replacePlayerName(chatReceiveEvent.getComponent().getString())));
     }
 }
