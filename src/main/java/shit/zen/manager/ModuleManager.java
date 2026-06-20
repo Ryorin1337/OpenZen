@@ -92,7 +92,7 @@ public class ModuleManager extends ClientBase {
         this.register(new EntityEditor());
 
         this.register(new KillSay());
-        //this.register(new KillEffect());
+        this.register(new HitEffect());
         this.register(new AntiStaff());
         this.register(new AutoPlay());
         this.register(new AutoTools());
