@@ -60,6 +60,7 @@ extends HudElement {
         if (mc.level == null || mc.player == null) {
             return;
         }
+        this.editHandler();
         float maxHealth;
         for (AbstractClientPlayer player : mc.level.players()) {
             if (player == mc.player || !playerHealthMap.containsKey(player.getName().getString())) continue;

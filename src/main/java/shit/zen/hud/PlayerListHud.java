@@ -258,6 +258,7 @@ extends HudElement {
 
     @Override
     public void onRender2D(Render2DEvent render2DEvent, float x, float y) {
+        this.editHandler();
     }
 
     @Override
