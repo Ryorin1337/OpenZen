@@ -95,13 +95,12 @@ public final class PatchTransformer {
             MethodKey key = new MethodKey(method.name, method.desc);
             List<Method> handlers = handlersByTarget.get(key);
             if (handlers == null && !nameOnlyHandlers.isEmpty()) {
-                // Try name-only match for handlers registered with empty desc
+                // Try name-only match for handlers registered with empty desc.
+                // Works for every handler kind (Inject/Overwrite/Transform/WrapInvoke/
+                // ModifyLocals), not just Inject/Overwrite.
                 for (Method candidate : nameOnlyHandlers) {
-                    Inject inject = candidate.getAnnotation(Inject.class);
-                    Overwrite overwrite = candidate.getAnnotation(Overwrite.class);
-                    String targetName = inject != null ? inject.method()
-                            : overwrite != null ? overwrite.method() : null;
-                    if (targetName != null && targetName.equals(method.name)) {
+                    String targetName = getHandlerTargetMethodName(candidate);
+                    if (targetName.equals(method.name)) {
                         if (handlers == null) handlers = new ArrayList<>();
                         handlers.add(candidate);
                         nameOnlyMatched.add(method.name);
@@ -267,7 +266,58 @@ public final class PatchTransformer {
         }
     }
 
+    /**
+     * Validates that a HEAD-inject handler's parameter list is bytecode-compatible with the
+     * {@code (receiver?, args..., CallbackInfo)} sequence that {@link #injectHead} forwards.
+     *
+     * <p>This matters most for name-only ({@code desc=""}) patches: those match a target by
+     * method name alone, so a handler can end up bound to a method whose arity or primitive
+     * parameter types differ from what it declares. Forwarding into such a handler would emit a
+     * call site that fails JVM verification ({@code VerifyError}) at class load. Returns
+     * {@code null} when compatible, otherwise a human-readable reason.</p>
+     */
+    private static String headHandlerMismatch(MethodNode method, Method handler) {
+        List<Type> forwarded = new ArrayList<>();
+        if (!Modifier.isStatic(method.access)) {
+            // Receiver is always a reference; only its primitive-ness is checked below.
+            forwarded.add(Type.getObjectType("java/lang/Object"));
+        }
+        forwarded.addAll(Arrays.asList(Type.getArgumentTypes(method.desc)));
+
+        // The last handler parameter is CallbackInfo (enforced by validateInjectSignature);
+        // the remaining params receive the forwarded receiver + args.
+        int expected = handler.getParameterCount() - 1;
+        if (forwarded.size() != expected) {
+            return "handler takes " + expected + " forwarded parameter(s) but target supplies "
+                    + forwarded.size() + " (receiver + args)";
+        }
+        Class<?>[] params = handler.getParameterTypes();
+        for (int i = 0; i < forwarded.size(); i++) {
+            Type arg = forwarded.get(i);
+            Class<?> p = params[i];
+            boolean argIsPrimitive = arg.getSort() != Type.OBJECT && arg.getSort() != Type.ARRAY;
+            if (argIsPrimitive) {
+                // Primitives cannot widen to Object — the handler param must be the exact type.
+                if (!p.isPrimitive() || !p.getName().equals(arg.getClassName())) {
+                    return "parameter " + i + " is primitive " + arg.getClassName()
+                            + " but handler declares " + p.getName();
+                }
+            } else if (p.isPrimitive()) {
+                // A reference arg cannot be passed into a primitive parameter.
+                return "parameter " + i + " is a reference but handler declares primitive " + p.getName();
+            }
+        }
+        return null;
+    }
+
     private static void injectHead(MethodNode method, Method handler) {
+        String mismatch = headHandlerMismatch(method, handler);
+        if (mismatch != null) {
+            LOGGER.warn("@Inject(HEAD) {}#{} is incompatible with matched target {}{} — {} — skipping injection to avoid invalid bytecode.",
+                    handler.getDeclaringClass().getName(), handler.getName(),
+                    method.name, method.desc, mismatch);
+            return;
+        }
         Type returnType = Type.getReturnType(method.desc);
         String handlerOwner = Type.getInternalName(handler.getDeclaringClass());
         String handlerName = handler.getName();

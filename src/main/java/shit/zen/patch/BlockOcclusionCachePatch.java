@@ -22,12 +22,14 @@ import shit.zen.modules.impl.render.XRay;
  *
  * <p>The target class is referenced by {@link Patch#className()} rather than by
  * {@link Patch#value()} because Embeddium is an optional mod — the class is not
- * available at compile time. Registration in
- * {@link shit.zen.ZenClient#registerPatches()} is guarded by a
- * {@link Class#forName(String)} check so the patch is only loaded when Embeddium is
- * present. The method descriptor is left empty (name-only match) because the parameter
- * types in Embeddium's bytecode may differ between Yarn and Mojmap mappings depending
- * on the Embeddium build and compatibility layer.</p>
+ * available at compile time. The patch is registered <em>unconditionally</em> in
+ * {@link shit.zen.ZenClient#registerPatches()} (we must <em>not</em> probe with
+ * {@link Class#forName(String)}, which would force the target class to load before our
+ * transformer is installed and thus defeat the patch). When Embeddium is absent the
+ * target class simply never loads, so the registered patch is harmless. The method
+ * descriptor is left empty (name-only match) because the parameter types in Embeddium's
+ * bytecode may differ between Yarn and Mojmap mappings depending on the Embeddium build
+ * and compatibility layer.</p>
  */
 @Patch(className = "me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline.BlockOcclusionCache")
 public class BlockOcclusionCachePatch {
@@ -38,13 +40,17 @@ public class BlockOcclusionCachePatch {
      * faces visible = rendered through walls) and non-target blocks return
      * {@code false} (no faces visible = completely transparent).
      *
-     * <p>All parameters are declared as {@link Object} rather than their actual types
-     * because Embeddium may be compiled with either Yarn or Mojmap mappings — using
-     * {@code Object} avoids a {@code VerifyError} when the handler's descriptor
-     * doesn't match the runtime descriptor exactly. The only param we actually read
-     * is {@code selfState}, which is cast to Mojmap {@link BlockState} (always
-     * correct at runtime since the loaded Minecraft classes are Mojmap-mapped in a
-     * Forge environment).</p>
+     * <p>All reference parameters are declared as {@link Object} rather than their actual
+     * types because Embeddium may be compiled with either Yarn or Mojmap mappings — every
+     * argument of {@code shouldDrawSide} is a reference type, so declaring them as
+     * {@code Object} lets the forwarded values widen cleanly regardless of the concrete
+     * runtime types. Note this only protects against <em>type</em> mismatches: the
+     * parameter <em>count</em> must still equal the target method's arity (receiver + args),
+     * otherwise the generated call site is invalid. {@code PatchTransformer.injectHead}
+     * now guards this and skips the injection with a warning rather than emitting bytecode
+     * that would fail verification. The only param we actually read is {@code selfState},
+     * which is cast to Mojmap {@link BlockState} (always correct at runtime since the loaded
+     * Minecraft classes are Mojmap-mapped in a Forge environment).</p>
      *
      * @param self       the {@code BlockOcclusionCache} instance (unused)
      * @param selfState  the {@code BlockState} of the block being rendered
