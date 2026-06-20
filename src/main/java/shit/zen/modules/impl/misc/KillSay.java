@@ -137,7 +137,9 @@ public class KillSay extends Module {
             }
             messages.clear();
 
-            BufferedReader br = new BufferedReader(new FileReader(file));
+            BufferedReader br = new BufferedReader(
+                    new InputStreamReader(new FileInputStream(file), java.nio.charset.StandardCharsets.UTF_8)
+            );
             String line;
 
             while ((line = br.readLine()) != null) {
@@ -160,7 +162,9 @@ public class KillSay extends Module {
         file.getParentFile().mkdirs();
         file.createNewFile();
 
-        BufferedWriter bw = new BufferedWriter(new FileWriter(file));
+        BufferedWriter bw = new BufferedWriter(
+                new OutputStreamWriter(new FileOutputStream(file), java.nio.charset.StandardCharsets.UTF_8)
+        );
 
         bw.write("# KillSay config\n");
         bw.write("%s L\n");
