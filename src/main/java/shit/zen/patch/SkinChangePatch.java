@@ -39,22 +39,25 @@ public class SkinChangePatch {
     }
 
     @Inject(
-            method = "isSlimModel",
-            desc = "()Z",
+            method = "getModelName",
+            desc = "()Ljava/lang/String;", // 返回值改成了 String
             at = @At(At.Type.TAIL)
     )
-    public static void onSlimModel(AbstractClientPlayer player, CallbackInfo ci) {
+    public static void onGetModelName(AbstractClientPlayer player, CallbackInfo ci) {
+
         if (!ZenClient.isReady()) return;
         if (SkinChange.INSTANCE == null || !SkinChange.INSTANCE.isEnabled()) return;
 
         Minecraft mc = Minecraft.getInstance();
+
         if (player == mc.player) {
             if (SkinChange.INSTANCE.selfSkin.getValue()) {
-                ci.result = "Slim".equals(SkinChange.INSTANCE.getSelfModel());
+
+                ci.result = "Slim".equals(SkinChange.INSTANCE.getSelfModel()) ? "slim" : "default";
             }
         } else {
             if (SkinChange.INSTANCE.otherSkin.getValue()) {
-                ci.result = "Slim".equals(SkinChange.INSTANCE.getOtherModel());
+                ci.result = "Slim".equals(SkinChange.INSTANCE.getOtherModel()) ? "slim" : "default";
             }
         }
     }
