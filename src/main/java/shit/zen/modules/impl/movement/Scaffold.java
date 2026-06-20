@@ -85,6 +85,7 @@ public class Scaffold extends Module {
     private double lastYawDiff = Double.NaN;
     private double lastPitchDiff = Double.NaN;
     private boolean canBuildNow;
+    private boolean needsLookAdjustment;
 
     public Scaffold() {
         super("Scaffold", Category.MOVEMENT);
@@ -106,6 +107,7 @@ public class Scaffold extends Module {
             this.lastYawDiff = Double.NaN;
             this.lastPitchDiff = Double.NaN;
             this.canBuildNow = true;
+            this.needsLookAdjustment = false;
             this.packetBatches.clear();
             this.packetBatches.add(new CopyOnWriteArrayList<>());
         }
@@ -124,6 +126,7 @@ public class Scaffold extends Module {
             mc.options.keyUse.setDown(false);
             mc.player.getInventory().selected = this.oldSlot;
             this.canBuildNow = true;
+            this.needsLookAdjustment = false;
             ClientBase.delayPackets.clear();
         }
         super.onDisable();
@@ -205,6 +208,11 @@ public class Scaffold extends Module {
         }
 
         this.applyRotations();
+
+        if (this.currentPlacement != null) {
+            this.updateLookAtStatus();
+        }
+
         boolean firstGroundTick = false;
         this.canBuildNow = true;
         if (this.currentPlacement != null && placeableSlot != -1) {
@@ -234,6 +242,7 @@ public class Scaffold extends Module {
             this.rots.setYawPitch(rotationToBlock.getYaw(), rotationToBlock.getPitch());
             RotationHandler.setTargetRotation(this.rots);
             this.rotationDelay++;
+
             ClientBase.delayPackets.add(() -> {});
             ClientBase.delayPackets.add(() -> {
                 RotationHandler.prevSentRotation.setYawPitch(rotationToBlock.getYaw(), rotationToBlock.getPitch());
@@ -248,10 +257,11 @@ public class Scaffold extends Module {
                 } else {
                     PacketUtil.sendQueued(new ServerboundMovePlayerPacket.Rot(yaw, rotationToBlock.getPitch(), mc.player.onGround()));
                 }
-                this.doSnap();
+                this.doSafeSnap(); // 使用安全的Snap
                 this.onTick(event);
             });
         } else {
+            // 正常搭建分支
             this.canBuildNow = true;
             ClientBase.delayPackets.clear();
             this.rotationDelay = 0;
@@ -261,6 +271,11 @@ public class Scaffold extends Module {
                 this.rots.setYaw(RotationUtil.moveTowards((float) this.getBlockDistance(), this.rots.getYaw(), this.correctRotation.getYaw()));
             }
             this.rots.setPitch(this.correctRotation.getPitch());
+
+            if (this.currentPlacement != null) {
+                this.adjustLookAtRotation();
+            }
+
             if (this.sneak.getValue()) {
                 this.eagleTimer++;
                 if (this.eagleTimer == 18) {
@@ -311,7 +326,7 @@ public class Scaffold extends Module {
         boolean canRayTrace = RayTraceUtil.canRayTrace(RotationHandler.targetRotation, this.currentPlacement.facing, this.currentPlacement.position, false);
         if (!this.canBuildNow && !this.isPlacementReachable(this.currentPlacement)) return;
         if (this.rotationDelay <= 0 && !this.mode.is("Old Telly") && !canRayTrace) return;
-        this.doSnap();
+        this.doSafeSnap();
     }
 
     @EventTarget
@@ -469,7 +484,35 @@ public class Scaffold extends Module {
         return mc.level.isEmptyBlock(below) && BlockUtil.isPlaceable(mc.player.getMainHandItem());
     }
 
-    private void doSnap() {
+    private boolean isValidPlacement(PlacementTarget target) {
+        if (target == null || mc.player == null) return false;
+        if (!this.canBuildNow && this.clutch.getValue()) return true;
+        return RayTraceUtil.canRayTrace(RotationHandler.targetRotation, target.facing, target.position, false);
+    }
+
+    private PlacementTarget validateAndCorrectPlacement(PlacementTarget target) {
+        if (target == null || mc.player == null) return null;
+        if (isValidPlacement(target)) return target;
+        for (Direction dir : Direction.values()) {
+            if (dir == target.facing) continue;
+            if (RayTraceUtil.canRayTrace(RotationHandler.targetRotation, dir, target.position, false)) {
+                return new PlacementTarget(target.position, dir);
+            }
+        }
+        return null;
+    }
+
+    private void doSafeSnap() {
+        if (this.currentPlacement == null || mc.player == null || mc.gameMode == null) return;
+        PlacementTarget corrected = validateAndCorrectPlacement(this.currentPlacement);
+        if (corrected == null) return;
+        if (!corrected.facing.equals(this.currentPlacement.facing)) {
+            this.currentPlacement = corrected;
+        }
+        doSnapInternal();
+    }
+
+    private void doSnapInternal() {
         if (this.currentPlacement == null || mc.player == null || mc.gameMode == null) return;
         if (!BlockUtil.isPlaceable(mc.player.getMainHandItem())) return;
         Direction facing = this.currentPlacement.facing;
@@ -486,10 +529,49 @@ public class Scaffold extends Module {
         }
     }
 
+    private void doSnap() {
+        doSafeSnap();
+    }
+
+    private boolean isLookingAtTarget() {
+        if (this.currentPlacement == null || RotationHandler.targetRotation == null || mc.player == null) return false;
+        return RayTraceUtil.canRayTrace(RotationHandler.targetRotation, this.currentPlacement.facing, this.currentPlacement.position, false);
+    }
+
+    private Rotation getOptimalLookRotation() {
+        if (this.currentPlacement == null || mc.player == null) return null;
+        Vec3 hitVec = getHitVec(this.currentPlacement.position, this.currentPlacement.facing);
+        return RotationUtil.rotationFromVec(hitVec);
+    }
+
+    private void adjustLookAtRotation() {
+        if (this.currentPlacement == null || mc.player == null) return;
+        if (!this.shouldBuild()) return;
+        if (this.canBuildNow && this.needsLookAdjustment && this.rots != null) {
+            Rotation optimal = this.getOptimalLookRotation();
+            if (optimal != null) {
+                Rotation smooth = RotationUtil.smoothRotation(this.rots, optimal, 45.0);
+                if (smooth != null) {
+                    this.rots.setYawPitch(smooth.getYaw(), smooth.getPitch());
+                    this.correctRotation.setYawPitch(smooth.getYaw(), smooth.getPitch());
+                }
+            }
+        }
+    }
+
+    private void updateLookAtStatus() {
+        if (this.currentPlacement == null) {
+            this.needsLookAdjustment = false;
+            return;
+        }
+        this.needsLookAdjustment = !this.isLookingAtTarget();
+    }
+
+    // =================== 其他工具方法 ===================
     public static boolean isOnBlockEdge(float inflate) {
         if (mc.level == null || mc.player == null) return false;
         return !mc.level.getCollisions(mc.player,
-                mc.player.getBoundingBox().move(0.0, -0.5, 0.0).inflate(-inflate, 0.0, -inflate))
+                        mc.player.getBoundingBox().move(0.0, -0.5, 0.0).inflate(-inflate, 0.0, -inflate))
                 .iterator().hasNext();
     }
 
