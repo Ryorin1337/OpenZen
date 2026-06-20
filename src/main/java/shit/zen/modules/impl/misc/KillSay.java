@@ -2,12 +2,12 @@ package shit.zen.modules.impl.misc;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import shit.zen.event.EventTarget;
-import shit.zen.event.impl.EntityHurtEvent;
-import shit.zen.event.impl.EntityRemoveEvent;
-import shit.zen.event.impl.TickEvent;
-import shit.zen.event.impl.WorldChangeEvent;
+import shit.zen.event.impl.*;
 import shit.zen.manager.ConfigManager;
 import shit.zen.modules.Category;
 import shit.zen.modules.Module;
@@ -43,15 +43,21 @@ public class KillSay extends Module {
         attacked.clear();
     }
     @EventTarget
-    public void onEntityHurt(EntityHurtEvent e) {
-        if (!(e.entity() instanceof Player p)) return;
+    public void onPacket(PacketEvent e) {
+        if (mc.player == null || mc.level == null) return;
+        if (!e.isIncoming() && e.getPacket() instanceof ServerboundInteractPacket packet) {
+            packet.dispatch(new ServerboundInteractPacket.Handler() {
+                @Override
+                public void onAttack() {
+                    if (mc.crosshairPickEntity instanceof Player playerTarget && playerTarget != mc.player) {
+                        attacked.putIfAbsent(playerTarget.getUUID(), playerTarget.getName().getString());
+                    }
+                }
 
-        if (mc.player != null && p == mc.player) return;
-
-        attacked.putIfAbsent(
-                p.getUUID(),
-                p.getName().getString()
-        );
+                @Override public void onInteraction(InteractionHand hand) {}
+                @Override public void onInteraction(InteractionHand hand, Vec3 location) {}
+            });
+        }
     }
     @EventTarget
     public void onTick(TickEvent e) {
