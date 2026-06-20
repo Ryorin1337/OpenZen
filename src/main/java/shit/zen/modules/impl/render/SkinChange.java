@@ -31,6 +31,7 @@ public class SkinChange extends Module {
     public final ModeSetting otherSkinModel =
             new ModeSetting("Other Skin Model", "Normal", "Slim")
                     .withDefault("Slim");
+
     private static final ResourceLocation SELF_TEX =
             fromNamespaceAndPath("zen", "skin/self");
 
@@ -48,15 +49,24 @@ public class SkinChange extends Module {
     @Override
     public void onEnable() {
         if (!loadSkins()) {
-            ChatUtil.print("Error while load skins");
+            ChatUtil.print("Error while load skins (Files may be missing)");
             this.setEnabled(false);
         }
     }
 
     @Override
     public void onDisable() {
-        selfTexture = null;
-        otherTexture = null;
+        Minecraft mc = Minecraft.getInstance();
+        if (selfTexture != null) {
+            mc.getTextureManager().release(SELF_TEX);
+            selfTexture.close();
+            selfTexture = null;
+        }
+        if (otherTexture != null) {
+            mc.getTextureManager().release(OTHER_TEX);
+            otherTexture.close();
+            otherTexture = null;
+        }
     }
 
     private NativeImage read(File file) throws Exception {
@@ -66,50 +76,54 @@ public class SkinChange extends Module {
     private void registerOrReplace(ResourceLocation id, DynamicTexture tex) {
         Minecraft mc = Minecraft.getInstance();
         TextureManager tm = mc.getTextureManager();
-
         tm.register(id, tex);
     }
 
-    public boolean loadSkins() {
+    public synchronized boolean loadSkins() {
         try {
             File self = new File(ConfigManager.CONFIG_DIR, "self_skin.png");
             File other = new File(ConfigManager.CONFIG_DIR, "other_skin.png");
 
+            // 加载自己皮肤
             if (selfSkin.getValue()) {
-                if (!self.exists() || !self.isFile()) return false;
-
-                if (selfTexture != null) {
-                    selfTexture.close(); // 防泄漏（关键）
+                if (self.exists() && self.isFile()) {
+                    if (selfTexture != null) {
+                        selfTexture.close();
+                    }
+                    selfTexture = new DynamicTexture(read(self));
+                    registerOrReplace(SELF_TEX, selfTexture);
                 }
-
-                selfTexture = new DynamicTexture(read(self));
-                registerOrReplace(SELF_TEX, selfTexture);
             }
-
             if (otherSkin.getValue()) {
-                if (!other.exists() || !other.isFile()) return false;
-
-                if (otherTexture != null) {
-                    otherTexture.close();
+                if (other.exists() && other.isFile()) {
+                    if (otherTexture != null) {
+                        otherTexture.close();
+                    }
+                    otherTexture = new DynamicTexture(read(other));
+                    registerOrReplace(OTHER_TEX, otherTexture);
                 }
-
-                otherTexture = new DynamicTexture(read(other));
-                registerOrReplace(OTHER_TEX, otherTexture);
             }
-
             return true;
-
         } catch (Throwable t) {
+            t.printStackTrace();
             return false;
         }
     }
 
     public ResourceLocation getSelfSkin() {
-        return selfSkin.getValue() ? SELF_TEX : null;
+        if (!selfSkin.getValue()) return null;
+        if (selfTexture == null) {
+            loadSkins();
+        }
+        return selfTexture != null ? SELF_TEX : null;
     }
 
     public ResourceLocation getOtherSkin() {
-        return otherSkin.getValue() ? OTHER_TEX : null;
+        if (!otherSkin.getValue()) return null;
+        if (otherTexture == null) {
+            loadSkins();
+        }
+        return otherTexture != null ? OTHER_TEX : null;
     }
 
     public String getSelfModel() {

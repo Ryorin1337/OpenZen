@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import shit.zen.ZenClient;
 import shit.zen.modules.impl.render.SkinChange;
+
 @Patch(AbstractClientPlayer.class)
 public class SkinChangePatch {
 
@@ -18,31 +19,22 @@ public class SkinChangePatch {
             desc = "()Lnet/minecraft/resources/ResourceLocation;",
             at = @At(At.Type.TAIL)
     )
-    public static void onGetSkin(AbstractClientPlayer player,
-                                 CallbackInfo ci) {
-
+    public static void onGetSkin(AbstractClientPlayer player, CallbackInfo ci) {
         if (!ZenClient.isReady()) return;
-
         if (SkinChange.INSTANCE == null || !SkinChange.INSTANCE.isEnabled()) return;
-
-        Object raw = ci.result;
-        if (raw == null) return;
-
-        ResourceLocation current = (ResourceLocation) raw;
+        if (ci.result == null) return;
 
         Minecraft mc = Minecraft.getInstance();
-
-        // 自己
         if (player == mc.player) {
-            if (SkinChange.INSTANCE.selfSkin.getValue() && SkinChange.INSTANCE.getSelfSkin() != null) {
-                ci.result = SkinChange.INSTANCE.getSelfSkin();
-                return;
+            ResourceLocation selfTex = SkinChange.INSTANCE.getSelfSkin();
+            if (selfTex != null) {
+                ci.result = selfTex;
             }
-        }
-
-        // 别人
-        if (SkinChange.INSTANCE.otherSkin.getValue() && SkinChange.INSTANCE.getOtherSkin() != null) {
-            ci.result = SkinChange.INSTANCE.getOtherSkin();
+        } else {
+            ResourceLocation otherTex = SkinChange.INSTANCE.getOtherSkin();
+            if (otherTex != null) {
+                ci.result = otherTex;
+            }
         }
     }
 
@@ -51,21 +43,19 @@ public class SkinChangePatch {
             desc = "()Z",
             at = @At(At.Type.TAIL)
     )
-    public static void onSlimModel(AbstractClientPlayer player,
-                                   CallbackInfo ci) {
-
+    public static void onSlimModel(AbstractClientPlayer player, CallbackInfo ci) {
         if (!ZenClient.isReady()) return;
-
         if (SkinChange.INSTANCE == null || !SkinChange.INSTANCE.isEnabled()) return;
 
-        boolean slim;
-
-        if (player == Minecraft.getInstance().player) {
-            slim = "Slim".equals(SkinChange.INSTANCE.getSelfModel());
+        Minecraft mc = Minecraft.getInstance();
+        if (player == mc.player) {
+            if (SkinChange.INSTANCE.selfSkin.getValue()) {
+                ci.result = "Slim".equals(SkinChange.INSTANCE.getSelfModel());
+            }
         } else {
-            slim = "Slim".equals(SkinChange.INSTANCE.getOtherModel());
+            if (SkinChange.INSTANCE.otherSkin.getValue()) {
+                ci.result = "Slim".equals(SkinChange.INSTANCE.getOtherModel());
+            }
         }
-
-        ci.result = slim;
     }
 }
