@@ -42,7 +42,9 @@ import shit.zen.modules.impl.combat.AntiKB;
 import shit.zen.modules.impl.combat.KillAura;
 import shit.zen.modules.impl.combat.antikb.AntiKBMode;
 import shit.zen.modules.impl.player.Stuck;
+import shit.zen.utils.game.RayTraceUtil;
 import shit.zen.utils.misc.ChatUtil;
+import shit.zen.utils.rotation.Rotation;
 
 public class NoXZMode extends AntiKBMode {
     public static NoXZMode INSTANCE;
@@ -281,8 +283,29 @@ public class NoXZMode extends AntiKBMode {
         }
         if (entity instanceof LivingEntity && ((livingEntity = (LivingEntity)entity).isDeadOrDying() || livingEntity.getHealth() <= 0.0f)) {
             return false;
-        };
-        return !(this.getAABBDistance(entity) > AntiKB.INSTANCE.maxReach.getValue().doubleValue());
+        }
+        if (this.getAABBDistance(entity) > AntiKB.INSTANCE.maxReach.getValue().doubleValue()){
+            ChatUtil.print("Out of Reach,set target not valid");
+            return false;
+        }
+        //增加了一个RayTrace
+        Rotation rotation = new Rotation(mc.player.getYRot(), mc.player.getXRot());
+        float inflate = 0.0f;
+        boolean ignoreBlocks = false;
+        HitResult hitResult = RayTraceUtil.rayTraceForEntity(
+                rotation,
+                AntiKB.INSTANCE.maxReach.getValue().doubleValue(),
+                inflate,
+                mc.player,
+                entity,
+                ignoreBlocks
+        );
+        if (!(hitResult instanceof EntityHitResult) ||
+                ((EntityHitResult) hitResult).getEntity() != entity) {
+            ChatUtil.print("Raytrace failed, set target not valid");
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -422,10 +445,29 @@ public class NoXZMode extends AntiKBMode {
                 || !this.attackTarget.isAlive()
                 || aimed == null
                 || aimed != this.attackTarget) {
+            ChatUtil.print("Not aim at target, reset");
             this.clearTarget();
             return;
         }
         if (this.getAABBDistance(this.attackTarget) > AntiKB.INSTANCE.maxReach.getValue().doubleValue()) {
+            ChatUtil.print("Out of Reach,reset");
+            this.clearTarget();
+            return;
+        }
+        Rotation rotation = new Rotation(mc.player.getYRot(), mc.player.getXRot());
+        float inflate = 0.0f;
+        boolean ignoreBlocks = false;
+        HitResult hitResult = RayTraceUtil.rayTraceForEntity(
+                rotation,
+                AntiKB.INSTANCE.maxReach.getValue().doubleValue(),
+                inflate,
+                mc.player,
+                this.attackTarget,
+                ignoreBlocks
+        );
+        if (!(hitResult instanceof EntityHitResult) ||
+                ((EntityHitResult) hitResult).getEntity() != this.attackTarget) {
+            ChatUtil.print("Raytrace failed, reset");
             this.clearTarget();
             return;
         }
