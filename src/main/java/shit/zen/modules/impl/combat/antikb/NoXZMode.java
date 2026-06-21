@@ -45,6 +45,7 @@ import shit.zen.modules.impl.player.Stuck;
 import shit.zen.utils.game.RayTraceUtil;
 import shit.zen.utils.misc.ChatUtil;
 import shit.zen.utils.rotation.Rotation;
+import shit.zen.utils.rotation.RotationHandler;
 
 public class NoXZMode extends AntiKBMode {
     public static NoXZMode INSTANCE;
@@ -290,7 +291,7 @@ public class NoXZMode extends AntiKBMode {
         }
         //增加了一个RayTrace
         if (AntiKB.INSTANCE.raytraceCheck.getValue()){
-            Rotation rotation = new Rotation(mc.player.getYRot(), mc.player.getXRot());
+            Rotation rotation = new Rotation(RotationHandler.sentRotation.getYaw(), RotationHandler.sentRotation.getPitch());
             float inflate = 0.0f;
             boolean ignoreBlocks = false;
             HitResult hitResult = RayTraceUtil.rayTraceForEntity(
@@ -457,7 +458,7 @@ public class NoXZMode extends AntiKBMode {
             return;
         }
         if (AntiKB.INSTANCE.raytraceCheck.getValue()){
-            Rotation rotation = new Rotation(mc.player.getYRot(), mc.player.getXRot());
+            Rotation rotation = new Rotation(RotationHandler.sentRotation.getYaw(), RotationHandler.sentRotation.getPitch());
             float inflate = 0.0f;
             boolean ignoreBlocks = false;
             HitResult hitResult = RayTraceUtil.rayTraceForEntity(
