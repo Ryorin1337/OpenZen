@@ -18,13 +18,7 @@ extends Module {
 
     @EventTarget
     public void onRotation(RotationEvent rotationEvent) {
-        if (GuiMove.INSTANCE.isEnabled() ||  InventoryManager.isPerformingAction) {
-            if (mc.player != null) {
-                mc.player.setSprinting(false);
-
-            }
-            mc.options.toggleSprint().set(false);
-            KeyMapping.set(mc.options.keySprint.getKey(), false);
+        if (GuiMove.INSTANCE.isEnabled() && InventoryManager.isPerformingAction) {
             return;
         }
         mc.options.toggleSprint().set(false);
