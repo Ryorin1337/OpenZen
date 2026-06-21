@@ -39,6 +39,7 @@ extends Module {
     public final NumberSetting maxReach = new NumberSetting("Max Reach", 3.0, 1.0, 5.0, 0.1, () -> mode.is("NoXZ"));
     public final BooleanSetting instantAttack = new BooleanSetting("Instant Attack", false, () -> mode.is("NoXZ"));
     public final BooleanSetting sprintStateCheck = new BooleanSetting("Sprint state check", true, () -> mode.is("NoXZ"));
+    public final BooleanSetting raytraceCheck = new BooleanSetting("Raytrace Check", true, () -> mode.is("NoXZ"));
     public AntiKB() {
         super("AntiKB", Category.COMBAT);
         INSTANCE = this;
