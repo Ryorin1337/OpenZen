@@ -448,7 +448,7 @@ public class NoXZMode extends AntiKBMode {
                 || !this.attackTarget.isAlive()
                 || aimed == null
                 || aimed != this.attackTarget) {
-            ChatUtil.print("Not aiming");
+            ChatUtil.print("aim point mismatch");
             this.clearTarget();
             return;
         }

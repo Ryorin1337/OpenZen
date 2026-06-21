@@ -65,6 +65,7 @@ public class Scaffold extends Module {
     public final BooleanSetting renderAimPoint = new BooleanSetting("Render Aim Point", false);
     public final NumberSetting rotationTick = new NumberSetting("Rotation Tick", 3, 1, 6, 1);
     public final BooleanSetting clutch = new BooleanSetting("Clutch", true);
+    public final BooleanSetting clutchTestMode = new BooleanSetting("Clutch test mode",false, () -> clutch.getValue());
 
     public Rotation correctRotation = new Rotation();
     public Rotation rots = new Rotation();
@@ -501,7 +502,7 @@ public class Scaffold extends Module {
 
     private boolean isValidPlacement(PlacementTarget target) {
         if (target == null || mc.player == null || this.hitVecSource == null) return false;
-        if (!this.canBuildNow && this.clutch.getValue()) return true;
+        if (!this.canBuildNow && this.clutch.getValue() && !this.clutchTestMode.getValue()) return true;
 
         BlockPos targetPos = BlockPos.containing(this.hitVecSource.x, this.hitVecSource.y, this.hitVecSource.z);
         return RayTraceUtil.canRayTrace(RotationHandler.targetRotation, target.facing, targetPos, false);
