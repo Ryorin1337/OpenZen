@@ -285,25 +285,27 @@ public class NoXZMode extends AntiKBMode {
             return false;
         }
         if (this.getAABBDistance(entity) > AntiKB.INSTANCE.maxReach.getValue().doubleValue()){
-            ChatUtil.print("Out of Reach,set target not valid");
+            ChatUtil.print("Out of Reach");
             return false;
         }
         //增加了一个RayTrace
-        Rotation rotation = new Rotation(mc.player.getYRot(), mc.player.getXRot());
-        float inflate = 0.0f;
-        boolean ignoreBlocks = false;
-        HitResult hitResult = RayTraceUtil.rayTraceForEntity(
-                rotation,
-                AntiKB.INSTANCE.maxReach.getValue().doubleValue(),
-                inflate,
-                mc.player,
-                entity,
-                ignoreBlocks
-        );
-        if (!(hitResult instanceof EntityHitResult) ||
-                ((EntityHitResult) hitResult).getEntity() != entity) {
-            ChatUtil.print("Raytrace failed, set target not valid");
-            return false;
+        if (AntiKB.INSTANCE.raytraceCheck.getValue()){
+            Rotation rotation = new Rotation(mc.player.getYRot(), mc.player.getXRot());
+            float inflate = 0.0f;
+            boolean ignoreBlocks = false;
+            HitResult hitResult = RayTraceUtil.rayTraceForEntity(
+                    rotation,
+                    AntiKB.INSTANCE.maxReach.getValue().doubleValue(),
+                    inflate,
+                    mc.player,
+                    entity,
+                    ignoreBlocks
+            );
+            if (!(hitResult instanceof EntityHitResult) ||
+                    ((EntityHitResult) hitResult).getEntity() != entity) {
+                ChatUtil.print("Raytrace failed");
+                return false;
+            }
         }
         return true;
     }
@@ -445,33 +447,34 @@ public class NoXZMode extends AntiKBMode {
                 || !this.attackTarget.isAlive()
                 || aimed == null
                 || aimed != this.attackTarget) {
-            ChatUtil.print("Not aim at target, reset");
+            ChatUtil.print("Not aiming");
             this.clearTarget();
             return;
         }
         if (this.getAABBDistance(this.attackTarget) > AntiKB.INSTANCE.maxReach.getValue().doubleValue()) {
-            ChatUtil.print("Out of Reach,reset");
+            ChatUtil.print("Out of Reach");
             this.clearTarget();
             return;
         }
-        Rotation rotation = new Rotation(mc.player.getYRot(), mc.player.getXRot());
-        float inflate = 0.0f;
-        boolean ignoreBlocks = false;
-        HitResult hitResult = RayTraceUtil.rayTraceForEntity(
-                rotation,
-                AntiKB.INSTANCE.maxReach.getValue().doubleValue(),
-                inflate,
-                mc.player,
-                this.attackTarget,
-                ignoreBlocks
-        );
-        if (!(hitResult instanceof EntityHitResult) ||
-                ((EntityHitResult) hitResult).getEntity() != this.attackTarget) {
-            ChatUtil.print("Raytrace failed, reset");
-            this.clearTarget();
-            return;
+        if (AntiKB.INSTANCE.raytraceCheck.getValue()){
+            Rotation rotation = new Rotation(mc.player.getYRot(), mc.player.getXRot());
+            float inflate = 0.0f;
+            boolean ignoreBlocks = false;
+            HitResult hitResult = RayTraceUtil.rayTraceForEntity(
+                    rotation,
+                    AntiKB.INSTANCE.maxReach.getValue().doubleValue(),
+                    inflate,
+                    mc.player,
+                    this.attackTarget,
+                    ignoreBlocks
+            );
+            if (!(hitResult instanceof EntityHitResult) ||
+                    ((EntityHitResult) hitResult).getEntity() != this.attackTarget) {
+                ChatUtil.print("Raytrace failed");
+                this.clearTarget();
+                return;
+            }
         }
-
         isAttacking = true;
         attackCount = this.attacksRemaining--;
         this.attackCooldown = 2;
