@@ -38,6 +38,7 @@ import shit.zen.event.impl.WorldChangeEvent;
 import shit.zen.modules.Category;
 import shit.zen.modules.Module;
 import shit.zen.modules.impl.combat.antikb.NoXZMode;
+import shit.zen.modules.impl.combat.Critical;
 import shit.zen.modules.impl.player.AntiTNT;
 import shit.zen.modules.impl.player.AntiWeb;
 import shit.zen.modules.impl.player.AutoWebPlace;
@@ -63,9 +64,6 @@ public class KillAura extends Module {
     public static Entity target;
     public static Entity aimingTarget;
     public static List<Entity> targetList = new ArrayList<>();
-
-    // Fields kept in sync with the obfuscated jar: 12 BooleanSetting / 7
-    // NumberSetting / 3 ModeSetting, in declaration order.
     public final BooleanSetting attackPlayer    = new BooleanSetting("Attack Player", true);
     public final BooleanSetting attackInvisible = new BooleanSetting("Attack Invisible", false);
     public final BooleanSetting attackAnimals   = new BooleanSetting("Attack Animals", false);
@@ -200,7 +198,11 @@ public class KillAura extends Module {
         if (this.keepSprint.getValue()) {
             ++this.sprintTickCounter;
             if (this.sprintTickCounter % 2 == 0 && mc.player != null) {
-                mc.player.setSprinting(false);
+                if (Critical.instance != null && Critical.instance.isEnabled()) {
+                    Critical.instance.onKaSprintTick();
+                } else {
+                    mc.player.setSprinting(false);
+                }
             }
         }
     }
@@ -380,9 +382,6 @@ public class KillAura extends Module {
                 if (this.test.getValue() && player.getY() >= mc.player.getY() + 0.05f) {
                     return true;
                 }
-                // ZenClient.isOwner() was stripped during deobfuscation; the
-                // original jar bailed here when the entity name matched the
-                // client owner. Re-enable once that helper is restored.
             }
             if (Teams.isSameTeam(entity)) return false;
             if (entity instanceof Player && !(Boolean) this.attackPlayer.getValue()) return false;
