@@ -184,30 +184,13 @@ public class Scaffold extends Module {
             }
         }
     }
-
-    /**
-     * 根据玩家当前的视角方向，计算出完美的线性插值 Limit 倍率。
-     * 正东西南北 (0, 90, 180, 270) -> 1.0倍
-     * 正东北东南西南西北 (45, 135, 225, 315) -> 1.5倍
-     * 其余角度完全线性插值过渡，杜绝平滑跳档
-     */
     private float getDynamicLimitMultiplier() {
         if (mc.player == null) return 1.0f;
-
-        // 获取当前视角的绝对 Yaw 并规整至 0 ~ 360 度
         float yaw = Mth.wrapDegrees(mc.player.getYRot());
         if (yaw < 0) yaw += 360.0f;
-
-        // 缩放到 0 ~ 90 度的单象限区间内
         float angleInQuadrant = yaw % 90.0f;
-
-        // 计算当前角度偏离“完美斜向对角线(45度)”的绝对距离 (0 ~ 45 之间)
         float distanceFromDiagonal = Math.abs(angleInQuadrant - 45.0f);
-
-        // 映射为 0.0 ~ 1.0 的平滑插值系数 (45度处为1.0，0或90度处为0.0)
         float lerpFactor = 1.0f - (distanceFromDiagonal / 45.0f);
-
-        // 插值范围控制 1.0x -> 1.5x
         float baseMultiplier = 1.0f;
         float maxMultiplier = 1.5f;
 
@@ -581,13 +564,6 @@ public class Scaffold extends Module {
             return;
         }
         if (!this.shouldBuild()) return;
-
-        // 【安全拦截机制】确保当前发包时，视角物理射线上指向的必须是 BLOCK，防止由平滑延迟产生隔空右击
-//        HitResult mth = RayTraceUtil.rayTrace(1.0f, this.rots);
-//        if (mth.getType() != HitResult.Type.BLOCK) {
-//            return;
-//        }
-
         BlockHitResult hit = new BlockHitResult(this.hitVecSource, facing, this.currentPlacement.position, false);
         InteractionResult result = mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
         if (result == InteractionResult.SUCCESS) {
@@ -670,7 +646,7 @@ public class Scaffold extends Module {
                             );
 
                             limit *= getDynamicLimitMultiplier();
-                            ChatUtil.print("AngleLimit: change to" + " " + limit);
+                            //ChatUtil.print("AngleLimit: change to" + " " + limit);
 
                             float delta = (float)
                                     RotationUtil.angleDiffDouble(
@@ -705,7 +681,7 @@ public class Scaffold extends Module {
                 );
 
                 clampLimit *= getDynamicLimitMultiplier();
-                ChatUtil.print("AngleLimit: change to" + " " + clampLimit);
+                //ChatUtil.print("AngleLimit: change to" + " " + clampLimit);
 
             } else {
                 clampLimit = this.airTicks == 1 ? 90.0f : 50.0f;
