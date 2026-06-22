@@ -61,12 +61,12 @@ public class Scaffold extends Module {
     public final BooleanSetting eagle = new BooleanSetting("Eagle", true, () -> this.mode.is("Normal"));
     public final BooleanSetting sneak = new BooleanSetting("Sneak", true);
     public final BooleanSetting snap = new BooleanSetting("Snap", true, () -> this.mode.is("Normal"));
+    public final BooleanSetting smoothTelly = new BooleanSetting("Telly Smooth Rotation", false, () -> this.mode.is("Telly Bridge"));
+    public final BooleanSetting smoothUpTelly = new BooleanSetting("Heypixel UpTelly", false, () -> this.mode.is("Telly Bridge"));
     public final BooleanSetting renderItemSpoof = new BooleanSetting("Render Item Spoof", true);
     public final BooleanSetting renderAimPoint = new BooleanSetting("Render Aim Point", false);
     public final NumberSetting rotationTick = new NumberSetting("Rotation Tick", 3, 1, 6, 1);
     public final BooleanSetting clutch = new BooleanSetting("Clutch", true);
-    public final BooleanSetting smoothTelly = new BooleanSetting("Smooth Telly", false, () -> this.mode.is("Telly Bridge"));
-    public final BooleanSetting smoothUpTelly = new BooleanSetting("Smooth UpTelly", false, () -> this.mode.is("Telly Bridge"));
     public final BooleanSetting clutchTestMode = new BooleanSetting("Clutch test mode",false, () -> clutch.getValue());
 
     public Rotation correctRotation = new Rotation();
@@ -578,7 +578,10 @@ public class Scaffold extends Module {
         if (this.canBuildNow && this.needsLookAdjustment && this.rots != null) {
             Rotation optimal = this.getOptimalLookRotation();
             if (optimal != null) {
-                Rotation smooth = RotationUtil.smoothRotation(this.rots, optimal, 45.0);
+                Rotation smooth = RotationUtil.smoothRotation(this.rots, optimal,
+                        (this.mode.is("Telly Bridge") && this.smoothTelly.getValue())
+                                ? Math.max(8.0, 90.0 / this.rotationTick.getValue().doubleValue())
+                                : 45.0);
                 if (smooth != null) {
                     this.rots.setYawPitch(smooth.getYaw(), smooth.getPitch());
                     this.correctRotation.setYawPitch(smooth.getYaw(), smooth.getPitch());
