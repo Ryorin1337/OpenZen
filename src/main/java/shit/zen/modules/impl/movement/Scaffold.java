@@ -91,6 +91,7 @@ public class Scaffold extends Module {
     private double pitchDiff;
     private double lastYawDiff = Double.NaN;
     private double lastPitchDiff = Double.NaN;
+    private Rotation tickRotationSnapshot;
     private boolean canBuildNow;
     private boolean needsLookAdjustment;
 
@@ -114,6 +115,7 @@ public class Scaffold extends Module {
             this.pitchDiff = 0.0;
             this.lastYawDiff = Double.NaN;
             this.lastPitchDiff = Double.NaN;
+            this.tickRotationSnapshot = new Rotation();
             this.canBuildNow = true;
             this.needsLookAdjustment = false;
             this.packetBatches.clear();
@@ -343,6 +345,10 @@ public class Scaffold extends Module {
 
     @EventTarget
     public void onPreMotion(PreMotionEvent event) {
+        this.tickRotationSnapshot = new Rotation(
+                this.rots.getYaw(),
+                this.rots.getPitch()
+        );
         event.setCancelled(true);
         if (mc.screen != null || mc.player == null || this.currentPlacement == null || this.hitVecSource == null) return;
         if ((this.mode.is("Telly Bridge") || this.mode.is("Old Telly")) && this.airTicks < 1) return;
@@ -427,7 +433,7 @@ public class Scaffold extends Module {
         Vec3 eye = mc.player.getEyePosition();
 
         Vec3 toBlock = this.hitVecSource.subtract(eye);
-        return toBlock.lengthSqr() <= 20.25
+        return toBlock.lengthSqr() <= 25.0
                 && toBlock.normalize().dot(Vec3.atLowerCornerOf(target.facing.getNormal().multiply(-1)).normalize()) >= 0.0;
     }
 
@@ -502,7 +508,7 @@ public class Scaffold extends Module {
             BlockPos offset = pos.offset(direction.getNormal());
             if (mc.level.getBlockState(offset).entityCanStandOnFace(mc.level, offset, mc.player, direction)) {
                 Vec3 delta = offsetCenter.subtract(from);
-                if (delta.lengthSqr() <= 20.25
+                if (delta.lengthSqr() <= 25.0
                         && delta.normalize().dot(Vec3.atLowerCornerOf(direction.getNormal()).normalize()) >= 0.0) {
                     this.currentPlacement = new PlacementTarget(new BlockPos(offset.getX(), offset.getY(), offset.getZ()), direction.getOpposite());
 
@@ -567,8 +573,33 @@ public class Scaffold extends Module {
             return;
         }
         if (!this.shouldBuild()) return;
+
+
         if (this.interactBeforePlace.getValue()) {
             PacketUtil.sendPredictive(n -> new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, n));
+        }
+        if (this.mode.is("Telly Bridge")
+                && this.smoothTelly.getValue()
+                && this.hitVecSource != null
+                && this.tickRotationSnapshot != null) {
+
+            Rotation target =
+                    RotationUtil.rotationFromVec(this.hitVecSource);
+
+            Rotation sent = this.tickRotationSnapshot;
+
+            double yawDiff =
+                    RotationUtil.angleDiffDouble(
+                            target.getYaw(),
+                            sent.getYaw()
+                    );
+
+            double pitchDiff =
+                    Math.abs(target.getPitch() - sent.getPitch());
+
+            if (yawDiff > 12.0 || pitchDiff > 8.0) {
+                return;
+            }
         }
         BlockHitResult hit = new BlockHitResult(this.hitVecSource, facing, this.currentPlacement.position, false);
         InteractionResult result = mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
