@@ -108,7 +108,7 @@ extends ClientBase {
         rowY = (int)((float)rowY + 8.0f * scale);
         this.drawDropdown(drawContext, guiGraphics, "Menu Scale", this.selectedScale, SCALES, "scale", popupX, rowY, mouseX, mouseY, this.openAlpha, scale, popupWidth);
         FontRenderer footerFont = FontPresets.axiformaRegular(12.0f * scale);
-        String footer = "7unknown \u00a9 2024-2025";
+        String footer = "7unknown & Ryorin1337 \u00a9 2024-2077";
         float footerWidth = GlHelper.getStringWidth(footer, footerFont);
         GlHelper.drawText(footer, (float)popupX + ((float)popupWidth - footerWidth) / 2.0f, (float)(popupY + popupHeight) - 15.0f * scale, footerFont, labelColor);
     }
@@ -191,7 +191,7 @@ extends ClientBase {
     }
 
     private String getUserRole() {
-        return "User";
+        return "BigGod";
     }
 
     public boolean onMouseClick(int mouseX, int mouseY, float scale) {

@@ -199,7 +199,7 @@ public class KillAura extends Module {
             ++this.sprintTickCounter;
             if (this.sprintTickCounter % 2 == 0 && mc.player != null) {
                 if (Critical.instance != null && Critical.instance.isEnabled()) {
-                    Critical.instance.onKaSprintTick();
+                    Critical.instance.kaHandoff = true;
                 } else {
                     mc.player.setSprinting(false);
                 }
@@ -454,6 +454,19 @@ public class KillAura extends Module {
 
     private boolean isWebPlacing() {
         return AutoWebPlace.INSTANCE != null && AutoWebPlace.INSTANCE.isEnabled() && AutoWebPlace.targetRotation != null;
+    }
+
+    /**
+     * Tells Critical (or other modules) whether KA will actually call
+     * {@code mc.gameMode.attack()} this tick.  Uses the same conditions
+     * as {@link #onPreMotion} and {@link #attackEntity}.
+     */
+    public boolean willAttack() {
+        if (!this.isEnabled() || mc.player == null) return false;
+        if (target == null) return false;
+        if (this.attacks < 1.0f) return false;
+        if (this.keepSprint.getValue() && this.sprintTickCounter % 2 != 0) return false;
+        return true;
     }
 
     private List<Entity> getTargets() {
