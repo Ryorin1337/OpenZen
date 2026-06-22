@@ -12,7 +12,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -25,6 +28,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Vector4d;
+import org.joml.Vector3f;
 import shit.zen.event.impl.Render2DEvent;
 import shit.zen.event.impl.RenderEvent;
 import shit.zen.modules.Category;
@@ -42,21 +46,20 @@ public class ESP extends Module {
     public static ESP INSTANCE;
 
     public record Pair<A, B>(A first, B second) {
-
         public static <A, B> Pair<A, B> of(A a, B b) {
-                return new Pair<>(a, b);
-            }
+            return new Pair<>(a, b);
         }
-
-    private final ModeSetting modeSetting = new ModeSetting("Mode", "Glow", "Outlined 2D").withDefault("Outlined 2D");
-    private final BooleanSetting skeletonSetting = new BooleanSetting("Skeleton", false);
+    }
+    private final BooleanSetting glowSetting = new BooleanSetting("Glow", false);
+    private final BooleanSetting outline2DSetting = new BooleanSetting("Outlined 2D", true);
     private final BooleanSetting playersSetting = new BooleanSetting("Players", true);
     private final BooleanSetting mobsSetting = new BooleanSetting("Mobs", false);
     private final BooleanSetting animalsSetting = new BooleanSetting("Animals", false);
     private final BooleanSetting itemsSetting = new BooleanSetting("Items", false);
     private final BooleanSetting arrowsSetting = new BooleanSetting("Arrows", true);
+
     private final Map<Entity, Pair<Vector4d, Boolean>> entityBoxPositions = new HashMap<>();
-    private final Map<Entity, float[][]> playerBoneRotations = new HashMap<>();
+
     private final BooleanSetting showHealthBarSetting = new BooleanSetting("Show Health Bar", true);
     private final ModeSetting healthBarPositionSetting = new ModeSetting("Health Bar Position", "Bottom", "Top", "Left", "Right").withDefault("Bottom");
     private final List<Entity> visibleEntities = new ArrayList<>();
@@ -68,7 +71,7 @@ public class ESP extends Module {
     }
 
     public boolean isGlowing(Entity entity) {
-        if (this.isEnabled() && "Glow".equalsIgnoreCase(this.modeSetting.getValue())) {
+        if (this.isEnabled() && this.glowSetting.getValue()) {
             if (entity instanceof Player && this.playersSetting.getValue()) return true;
             if (entity instanceof Animal && this.animalsSetting.getValue()) return true;
             if (entity instanceof Mob && this.mobsSetting.getValue()) return true;
@@ -79,14 +82,8 @@ public class ESP extends Module {
     }
 
     @Override
-    protected void onEnable() {
-        super.onEnable();
-    }
-
-    @Override
     protected void onDisable() {
         this.entityBoxPositions.clear();
-        this.playerBoneRotations.clear();
         this.visibleEntities.clear();
         super.onDisable();
     }
@@ -107,7 +104,8 @@ public class ESP extends Module {
     @EventTarget
     public void onRender(RenderEvent renderEvent) {
         if (mc.level == null || mc.player == null) return;
-        if (!"Outlined 2D".equals(this.modeSetting.getValue())) {
+        // 2D 框投影与计算
+        if (!this.outline2DSetting.getValue()) {
             this.entityBoxPositions.clear();
             return;
         }
@@ -154,7 +152,7 @@ public class ESP extends Module {
 
     @EventTarget
     public void onRender2D(Render2DEvent event) {
-        if (!"Outlined 2D".equals(this.modeSetting.getValue()) || this.entityBoxPositions.isEmpty()) return;
+        if (!this.outline2DSetting.getValue() || this.entityBoxPositions.isEmpty()) return;
         Matrix4f matrix4f = event.guiGraphics().pose().last().pose();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -220,10 +218,6 @@ public class ESP extends Module {
         } else {
             RenderUtil.drawQuad(builder, matrix4f, barX, barY, barX + barW * healthFrac, barY + barH, healthColor);
         }
-    }
-
-    private void renderSkeleton(PoseStack poseStack, float partial) {
-        // Skeleton rendering omitted (heavy obfuscated code); enable Glow mode instead.
     }
 
     private Color getHealthColor(float fraction) {
