@@ -51,7 +51,9 @@ public class ESP extends Module {
         }
     }
     private final BooleanSetting glowSetting = new BooleanSetting("Glow", false);
-    private final BooleanSetting outline2DSetting = new BooleanSetting("Outlined 2D", true);
+    private final BooleanSetting box2DSetting = new BooleanSetting("2D Box", true);
+    private final BooleanSetting showHealthBarSetting = new BooleanSetting("Health Bar", true);
+
     private final BooleanSetting playersSetting = new BooleanSetting("Players", true);
     private final BooleanSetting mobsSetting = new BooleanSetting("Mobs", false);
     private final BooleanSetting animalsSetting = new BooleanSetting("Animals", false);
@@ -59,9 +61,7 @@ public class ESP extends Module {
     private final BooleanSetting arrowsSetting = new BooleanSetting("Arrows", true);
 
     private final Map<Entity, Pair<Vector4d, Boolean>> entityBoxPositions = new HashMap<>();
-
-    private final BooleanSetting showHealthBarSetting = new BooleanSetting("Show Health Bar", true);
-    private final ModeSetting healthBarPositionSetting = new ModeSetting("Health Bar Position", "Bottom", "Top", "Left", "Right").withDefault("Bottom");
+    private final ModeSetting healthBarPositionSetting = new ModeSetting("Health Bar Position", "Bottom", "Top", "Left", "Right").withDefault("Left");
     private final List<Entity> visibleEntities = new ArrayList<>();
     private final List<Vector2f> projectedPoints = new ArrayList<>();
 
@@ -104,8 +104,7 @@ public class ESP extends Module {
     @EventTarget
     public void onRender(RenderEvent renderEvent) {
         if (mc.level == null || mc.player == null) return;
-        // 2D 框投影与计算
-        if (!this.outline2DSetting.getValue()) {
+        if (!this.box2DSetting.getValue() && !this.showHealthBarSetting.getValue()) {
             this.entityBoxPositions.clear();
             return;
         }
@@ -152,7 +151,8 @@ public class ESP extends Module {
 
     @EventTarget
     public void onRender2D(Render2DEvent event) {
-        if (!this.outline2DSetting.getValue() || this.entityBoxPositions.isEmpty()) return;
+        if (this.entityBoxPositions.isEmpty()) return;
+
         Matrix4f matrix4f = event.guiGraphics().pose().last().pose();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -170,7 +170,9 @@ public class ESP extends Module {
             float y1 = (float) v.y();
             float x2 = x1 + (float) v.z();
             float y2 = y1 + (float) v.w();
-            this.drawFilledRect2D(builder, matrix4f, x1, y1, x2, y2, color);
+            if (this.box2DSetting.getValue()) {
+                this.drawFilledRect2D(builder, matrix4f, x1, y1, x2, y2, color);
+            }
             if (entity instanceof LivingEntity le && this.showHealthBarSetting.getValue()) {
                 this.drawHealthBar(builder, matrix4f, le, v, color);
             }
