@@ -65,6 +65,8 @@ public class Scaffold extends Module {
     public final BooleanSetting renderAimPoint = new BooleanSetting("Render Aim Point", false);
     public final NumberSetting rotationTick = new NumberSetting("Rotation Tick", 3, 1, 6, 1);
     public final BooleanSetting clutch = new BooleanSetting("Clutch", true);
+    public final BooleanSetting smoothTelly = new BooleanSetting("Smooth Telly", false, () -> this.mode.is("Telly Bridge"));
+    public final BooleanSetting smoothUpTelly = new BooleanSetting("Smooth UpTelly", false, () -> this.mode.is("Telly Bridge"));
     public final BooleanSetting clutchTestMode = new BooleanSetting("Clutch test mode",false, () -> clutch.getValue());
 
     public Rotation correctRotation = new Rotation();
@@ -295,7 +297,9 @@ public class Scaffold extends Module {
             }
             if (this.mode.is("Telly Bridge") || this.mode.is("Old Telly")) {
                 mc.options.keyJump.setDown(MovementUtil.isMoving() || jumpHeld);
-                if (this.airTicks < 1 && MovementUtil.isMoving()) {
+                if (this.airTicks < 1
+                        && MovementUtil.isMoving()
+                        && !this.smoothUpTelly.getValue()) {
                     if (this.mode.is("Old Telly")) {
                         this.rots.setYaw(mc.player.getYRot());
                     }
@@ -617,6 +621,26 @@ public class Scaffold extends Module {
                         rotation.setPitch(75.5f);
                     } else {
                         rotation = RotationUtil.rotationFromVec(this.hitVecSource);
+
+                        if (this.smoothTelly.getValue()) {
+                            float limit = (float) (
+                                    180.0 / Math.max(
+                                            1.0,
+                                            this.rotationTick.getValue().doubleValue()
+                                    )
+                            );
+
+                            float delta = (float)
+                                    RotationUtil.angleDiffDouble(
+                                            rotation.getYaw(),
+                                            RotationHandler.prevRotation.getYaw()
+                                    );
+
+                            rotation.setYaw(
+                                    RotationHandler.prevRotation.getYaw()
+                                            + RotationUtil.clampAngle(delta, limit)
+                            );
+                        }
                     }
                     ReflectionUtil.setJumpDelay(2);
                     break;
@@ -626,7 +650,22 @@ public class Scaffold extends Module {
                     break;
             }
         } else {
-            float clampLimit = this.airTicks == 1 ? 90.0f : 50.0f;
+            float clampLimit;
+
+            if (this.mode.is("Telly Bridge")
+                    && this.smoothTelly.getValue()) {
+
+                clampLimit = (float) (
+                        180.0 / Math.max(
+                                1.0,
+                                this.rotationTick.getValue().doubleValue()
+                        )
+                );
+
+            } else {
+
+                clampLimit = this.airTicks == 1 ? 90.0f : 50.0f;
+            }
             clampLimit -= RandomUtils.nextFloat(0.001f, 0.006f);
             rotation.setYaw(RotationHandler.prevRotation.getYaw()
                     + RotationUtil.clampAngle((float) yawDelta, clampLimit));
@@ -644,7 +683,10 @@ public class Scaffold extends Module {
                 : new Rotation(mc.player.getYRot(), mc.player.getXRot()));
         Rotation optimal = this.getOptimalRotation(rotation, reference.getYaw());
         double maxStep = Math.max(45.0, 180.0 / Math.max(1.0, this.rotationTick.getValue().doubleValue()));
-        if (this.mode.is("Telly Bridge")) {maxStep = Math.max(maxStep, 75.0);}
+        if (this.mode.is("Telly Bridge")
+                && !this.smoothTelly.getValue()) {
+            maxStep = Math.max(maxStep, 75.0);
+        }
         return RotationUtil.smoothRotation(reference, optimal, maxStep);
     }
 
