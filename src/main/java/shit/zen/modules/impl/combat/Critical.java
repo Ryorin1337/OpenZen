@@ -11,6 +11,7 @@ import shit.zen.event.EventTarget;
 import shit.zen.event.impl.GameTickEvent;
 import shit.zen.event.impl.PacketEvent;
 import shit.zen.event.impl.PreMotionEvent;
+import shit.zen.modules.impl.combat.KillAura;
 import shit.zen.utils.misc.ChatUtil;
 import shit.zen.modules.Category;
 import shit.zen.modules.Module;
@@ -36,7 +37,8 @@ public class Critical extends Module {
         isFalling         = false;
         serverSprinting   = mc.player != null && mc.player.isSprinting();
         sprintRestoreTick = 0;
-        ChatUtil.print("Warn: This module is still WIP");
+        ChatUtil.print("This module is still WIP, do not use!!!!!");
+        this.setEnabled(false);
     }
 
     @Override
@@ -48,7 +50,9 @@ public class Critical extends Module {
     @EventTarget
     public void onGameTick(GameTickEvent event) {
         if (mc.player == null) return;
-
+        if (KillAura.INSTANCE.getTarget() == null){
+            return;
+        }
         final float currentFallDistance = mc.player.fallDistance;
         if (currentFallDistance > prevFallDistance && currentFallDistance > 0f) {
             isFalling = true;
@@ -69,9 +73,21 @@ public class Critical extends Module {
     @EventTarget(value = EventPriority.HIGH)
     public void onPreMotion(PreMotionEvent event) {
         if (mc.player == null) return;
+        if (KillAura.INSTANCE.getTarget() == null) return;
         if (!isFalling) return;
-        if (!isKillAuraAboutToAttack()) return;
 
+        // KA handed off — send STOP only when KA will actually attack
+        if (kaHandoff) {
+            kaHandoff = false;
+            if (KillAura.INSTANCE.willAttack() && serverSprinting) {
+                sendSprint(false);
+                sprintRestoreTick = 1;
+            }
+            return;
+        }
+
+        // keepSprint OFF path — KA didn't toggle, we manage sprint ourselves
+        if (!isKillAuraAboutToAttack()) return;
         if (serverSprinting) {
             sendSprint(false);
             sprintRestoreTick = 1;
@@ -81,6 +97,9 @@ public class Critical extends Module {
     @EventTarget
     public void onPacket(PacketEvent event) {
         if (mc.player == null) return;
+        if (KillAura.INSTANCE.getTarget() == null){
+            return;
+        }
         if (event.isIncoming()) return;
 
         if (event.getPacket() instanceof ServerboundInteractPacket interact) {
@@ -105,25 +124,18 @@ public class Critical extends Module {
             });
         }
     }
-    public void onKaSprintTick() {
-        if (mc.player == null || mc.getConnection() == null) return;
-        if (!serverSprinting) return;
-
-        sendSprint(false);
-        sprintRestoreTick = 2;
-    }
+    /**
+     * Set by KillAura's {@code onSprint} on the tick it would normally
+     * call {@code setSprinting(false)}.  Read and cleared by
+     * {@link #onPreMotion} so the STOP is sent at the right time.
+     */
+    public boolean kaHandoff;
 
     private boolean isKillAuraAboutToAttack() {
         if (KillAura.INSTANCE == null || !KillAura.INSTANCE.isEnabled()) {
             return false;
         }
-        if (KillAura.target == null) {
-            return false;
-        }
-        if (KillAura.INSTANCE.keepSprint.getValue()) {
-            return KillAura.INSTANCE.sprintTickCounter % 2 == 0;
-        }
-        return true;
+        return KillAura.INSTANCE.willAttack();
     }
 
     private void sendSprint(boolean start) {
@@ -134,5 +146,6 @@ public class Critical extends Module {
         PacketUtil.sendQueued(
                 new ServerboundPlayerCommandPacket(mc.player, action));
         serverSprinting = start;
+        ChatUtil.print("[Critical] Sprint → " + (start ? "T (START)" : "F (STOP)"));
     }
 }
