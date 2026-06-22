@@ -16,6 +16,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.network.protocol.game.ServerGamePacketListener;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -66,6 +67,7 @@ public class Scaffold extends Module {
     public final BooleanSetting smoothUpTelly = new BooleanSetting("Heypixel UpTelly", false, () -> this.mode.is("Telly Bridge"));
     public final BooleanSetting renderItemSpoof = new BooleanSetting("Render Item Spoof", true);
     public final BooleanSetting renderAimPoint = new BooleanSetting("Render Aim Point", false);
+    public final BooleanSetting interactBeforePlace = new BooleanSetting("Interact item before place", false);
     public final NumberSetting rotationTick = new NumberSetting("Rotation Tick", 3, 1, 6, 1);
     public final BooleanSetting clutch = new BooleanSetting("Clutch", true);
     public final BooleanSetting clutchTestMode = new BooleanSetting("Clutch test mode", false, () -> clutch.getValue());
@@ -469,12 +471,13 @@ public class Scaffold extends Module {
         if (mc.level.getBlockState(belowFeet).entityCanStandOn(mc.level, belowFeet, mc.player)) return;
         if (this.isAbovePlaceable(eye, belowFeet)) return;
         for (int radius = 1; radius <= 6; radius++) {
-            if (this.isAbovePlaceable(eye, new BlockPos(feetX, this.targetYLevel - radius, feetZ))) return;
-            for (int x = 1; x <= radius; x++) {
-                for (int z = 0; z <= radius - x; z++) {
-                    int yOff = radius - x - z;
-                    for (int signX = 0; signX <= 1; signX++) {
-                        for (int signZ = 0; signZ <= 1; signZ++) {
+            for (int yOff = 0; yOff <= radius; yOff++) {
+                int xySum = radius - yOff;
+                for (int x = 0; x <= xySum; x++) {
+                    int z = xySum - x;
+                    if (x == 0 && z == 0 && yOff == 0) continue;
+                    for (int signX = 0; signX <= (x == 0 ? 0 : 1); signX++) {
+                        for (int signZ = 0; signZ <= (z == 0 ? 0 : 1); signZ++) {
                             BlockPos test = new BlockPos(
                                     feetX + (signX == 0 ? x : -x),
                                     this.targetYLevel - yOff,
@@ -564,6 +567,9 @@ public class Scaffold extends Module {
             return;
         }
         if (!this.shouldBuild()) return;
+        if (this.interactBeforePlace.getValue()) {
+            PacketUtil.sendPredictive(n -> new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, n));
+        }
         BlockHitResult hit = new BlockHitResult(this.hitVecSource, facing, this.currentPlacement.position, false);
         InteractionResult result = mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
         if (result == InteractionResult.SUCCESS) {
