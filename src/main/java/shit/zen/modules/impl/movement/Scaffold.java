@@ -63,14 +63,13 @@ public class Scaffold extends Module {
     public final BooleanSetting eagle = new BooleanSetting("Eagle", true, () -> this.mode.is("Normal"));
     public final BooleanSetting sneak = new BooleanSetting("Sneak", true);
     public final BooleanSetting snap = new BooleanSetting("Snap", true, () -> this.mode.is("Normal"));
-    public final BooleanSetting smoothTelly = new BooleanSetting("Telly Smooth Rotation", false, () -> this.mode.is("Telly Bridge"));
-    public final BooleanSetting smoothUpTelly = new BooleanSetting("Heypixel UpTelly", false, () -> this.mode.is("Telly Bridge"));
+    public final BooleanSetting smoothTelly = new BooleanSetting("Smooth", false, () -> this.mode.is("Telly Bridge"));
     public final BooleanSetting renderItemSpoof = new BooleanSetting("Render Item Spoof", true);
     public final BooleanSetting renderAimPoint = new BooleanSetting("Render Aim Point", false);
     public final BooleanSetting interactBeforePlace = new BooleanSetting("Interact item before place", false);
     public final NumberSetting rotationTick = new NumberSetting("Rotation Tick", 3, 1, 6, 1);
     public final BooleanSetting clutch = new BooleanSetting("Clutch", true);
-    public final BooleanSetting clutchTestMode = new BooleanSetting("Clutch test mode", false, () -> clutch.getValue());
+    public final BooleanSetting clutchTestMode = new BooleanSetting("Clutch Verify target", false, () -> clutch.getValue());
 
     public Rotation correctRotation = new Rotation();
     public Rotation rots = new Rotation();
@@ -316,7 +315,7 @@ public class Scaffold extends Module {
                 mc.options.keyJump.setDown(MovementUtil.isMoving() || jumpHeld);
                 if (this.airTicks < 1
                         && MovementUtil.isMoving()
-                        && !this.smoothUpTelly.getValue()) {
+                        && !this.smoothTelly.getValue()) {
                     if (this.mode.is("Old Telly")) {
                         this.rots.setYaw(mc.player.getYRot());
                     }
