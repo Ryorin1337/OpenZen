@@ -475,7 +475,7 @@ public class Scaffold extends Module {
         int feetZ = belowFeet.getZ();
         if (mc.level.getBlockState(belowFeet).entityCanStandOn(mc.level, belowFeet, mc.player)) return;
         if (this.isAbovePlaceable(eye, belowFeet)) return;
-        for (int radius = 1; radius <= 6; radius++) {
+        for (int radius = 1; radius <= 5; radius++) {
             for (int yOff = 0; yOff <= radius; yOff++) {
                 int xySum = radius - yOff;
                 for (int x = 0; x <= xySum; x++) {
