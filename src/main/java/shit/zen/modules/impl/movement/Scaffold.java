@@ -599,8 +599,10 @@ public class Scaffold extends Module {
             double pitchDiff =
                     Math.abs(target.getPitch() - sent.getPitch());
             if (yawDiff > 12.0 || pitchDiff > 8.0) {
-                ChatUtil.print("ignore");
-                return;
+                this.rots.setYawPitch(target.getYaw(), target.getPitch());
+                this.tickRotationSnapshot.setYawPitch(target.getYaw(), target.getPitch());
+                RotationHandler.setTargetRotation(this.rots);
+                ChatUtil.print("Corrected Rotation yawdiff "+ yawDiff +" pitchdiff "+pitchDiff);
             }
         }
         if (this.interactBeforePlace.getValue()) {
