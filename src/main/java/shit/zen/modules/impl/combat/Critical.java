@@ -3,6 +3,7 @@ package shit.zen.modules.impl.combat;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import shit.zen.event.impl.EntityRemoveEvent;
+import shit.zen.event.impl.TickEvent;
 import shit.zen.modules.Category;
 import shit.zen.modules.Module;
 import shit.zen.event.EventTarget;
@@ -23,6 +24,15 @@ public class Critical
     @Override
     public void onDisable() {
         super.onDisable();
+    }
+    @EventTarget
+    public void onTick(TickEvent tickEvent){
+        if (mc.player == null) {return;}
+        if (!autoJump.getValue()){return;}
+        if (!KillAura.INSTANCE.isEnabled() || KillAura.INSTANCE.getTarget() == null){return;}
+        if (mc.player.onGround()) {
+            mc. player.jumpFromGround();
+        }
     }
 
     @EventTarget
