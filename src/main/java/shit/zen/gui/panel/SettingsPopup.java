@@ -79,7 +79,7 @@ extends ClientBase {
         FontRenderer iconFont = FontPresets.materialIcons(18.0f * scale);
         GlHelper.drawText("\uE8B8", (float)popupX + 15.0f * scale, (float)popupY + 16.0f * scale, iconFont, whiteColor);
         FontRenderer titleFont = FontPresets.museoSans(22.0f * scale);
-        String title = "ZENLESS.ZONE";
+        String title = "EDIT-OPENZEN";
         float titleWidth = GlHelper.getStringWidth(title, titleFont);
         GlHelper.drawText(title, (float)popupX + ((float)popupWidth - titleWidth) / 2.0f, (float)popupY + 35.0f * scale, titleFont, whiteColor);
         this.drawCloseButton(popupX, popupY, iconFont, alphaByte, scale, popupWidth);
@@ -99,7 +99,7 @@ extends ClientBase {
         float roleWidth = GlHelper.getStringWidth(userRole, valueFont);
         GlHelper.drawText(userRole, (float)rightEdge - roleWidth, rowY, valueFont, valueColor);
         GlHelper.drawText("Updated:", (float)popupX + 15.0f * scale, rowY += rowHeight, labelFont, labelColor);
-        String updatedDate = "Aug 4 2025";
+        String updatedDate = "idk";
         float dateWidth = GlHelper.getStringWidth(updatedDate, valueFont);
         GlHelper.drawText(updatedDate, (float)rightEdge - dateWidth, rowY, valueFont, valueColor);
         rowY += rowHeight;
@@ -191,7 +191,7 @@ extends ClientBase {
     }
 
     private String getUserRole() {
-        return "BigGod";
+        return "Big_God";
     }
 
     public boolean onMouseClick(int mouseX, int mouseY, float scale) {
