@@ -68,6 +68,7 @@ public class Scaffold extends Module {
     public final BooleanSetting renderAimPoint = new BooleanSetting("Render Aim Point", false);
     public final BooleanSetting interactBeforePlace = new BooleanSetting("Interact item before place", false);
     public final NumberSetting rotationTick = new NumberSetting("Rotation Tick", 3, 1, 6, 1);
+    public final NumberSetting placeDelay = new NumberSetting("Place Delay", 1, 1, 5, 1);
     public final BooleanSetting clutch = new BooleanSetting("Clutch", true);
     public final BooleanSetting clutchTestMode = new BooleanSetting("Clutch Verify target", false, () -> clutch.getValue());
 
@@ -91,6 +92,7 @@ public class Scaffold extends Module {
     private double lastYawDiff = Double.NaN;
     private double lastPitchDiff = Double.NaN;
     private Rotation tickRotationSnapshot;
+    private int placeDelayCounter;
     private boolean canBuildNow;
     private boolean needsLookAdjustment;
 
@@ -525,6 +527,7 @@ public class Scaffold extends Module {
         return mc.level.getBlockState(below).canBeReplaced() && BlockUtil.isPlaceable(mc.player.getMainHandItem());
     }
 
+
     private boolean isValidPlacement(PlacementTarget target) {
         if (target == null || mc.player == null || this.hitVecSource == null) return false;
         if (!this.canBuildNow && this.clutch.getValue() && !this.clutchTestMode.getValue()) return true;
@@ -559,6 +562,11 @@ public class Scaffold extends Module {
 
     private void doSnapInternal() {
         if (this.currentPlacement == null || mc.player == null || mc.gameMode == null || this.hitVecSource == null) return;
+        if (this.placeDelayCounter > 0) {
+            this.placeDelayCounter--;
+            return;
+        }
+        this.placeDelayCounter = this.placeDelay.getValue().intValue() - 1;
         if (!BlockUtil.isPlaceable(mc.player.getMainHandItem())) return;
         Direction facing = this.currentPlacement.facing;
         BlockPos targetBuildPos = this.currentPlacement.position.relative(facing);
@@ -572,11 +580,6 @@ public class Scaffold extends Module {
             return;
         }
         if (!this.shouldBuild()) return;
-
-
-        if (this.interactBeforePlace.getValue()) {
-            PacketUtil.sendPredictive(n -> new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, n));
-        }
         if (this.mode.is("Telly Bridge")
                 && this.smoothTelly.getValue()
                 && this.hitVecSource != null
@@ -595,10 +598,13 @@ public class Scaffold extends Module {
 
             double pitchDiff =
                     Math.abs(target.getPitch() - sent.getPitch());
-
             if (yawDiff > 12.0 || pitchDiff > 8.0) {
+                ChatUtil.print("ignore");
                 return;
             }
+        }
+        if (this.interactBeforePlace.getValue()) {
+            PacketUtil.sendPredictive(n -> new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, n));
         }
         BlockHitResult hit = new BlockHitResult(this.hitVecSource, facing, this.currentPlacement.position, false);
         InteractionResult result = mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
