@@ -1,151 +1,42 @@
 package shit.zen.modules.impl.combat;
 
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ServerGamePacketListener;
-import net.minecraft.network.protocol.game.ServerboundInteractPacket;
-import net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.phys.Vec3;
-import shit.zen.event.EventPriority;
-import shit.zen.event.EventTarget;
-import shit.zen.event.impl.GameTickEvent;
-import shit.zen.event.impl.PacketEvent;
-import shit.zen.event.impl.PreMotionEvent;
-import shit.zen.modules.impl.combat.KillAura;
-import shit.zen.utils.misc.ChatUtil;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
+import shit.zen.event.impl.EntityRemoveEvent;
 import shit.zen.modules.Category;
 import shit.zen.modules.Module;
-import shit.zen.utils.misc.PacketUtil;
-public class Critical extends Module {
+import shit.zen.event.EventTarget;
+import shit.zen.settings.impl.BooleanSetting;
+import shit.zen.settings.impl.NumberSetting;
 
-    public static Critical instance;
+public class Critical
+        extends Module {
+    public static Critical INSTANCE;
 
-    private float   prevFallDistance;
-    private boolean isFalling;
-    private boolean serverSprinting;
-    private int     sprintRestoreTick;
+    public final NumberSetting range = new NumberSetting("Range", 3.0, 1.0, 3.2, 0.1);
+    public final BooleanSetting autoJump = new BooleanSetting("Auto Jump", true);
 
     public Critical() {
         super("Critical", Category.COMBAT);
-        instance = this;
+        INSTANCE = this;
     }
-
-
-    @Override
-    public void onEnable() {
-        prevFallDistance  = mc.player != null ? mc.player.fallDistance : 0f;
-        isFalling         = false;
-        serverSprinting   = mc.player != null && mc.player.isSprinting();
-        sprintRestoreTick = 0;
-        ChatUtil.print("This module is still WIP, do not use!!!!!");
-        this.setEnabled(false);
-    }
-
     @Override
     public void onDisable() {
-        sprintRestoreTick = 0;
-    }
-
-
-    @EventTarget
-    public void onGameTick(GameTickEvent event) {
-        if (mc.player == null) return;
-        if (KillAura.INSTANCE.getTarget() == null){
-            return;
-        }
-        final float currentFallDistance = mc.player.fallDistance;
-        if (currentFallDistance > prevFallDistance && currentFallDistance > 0f) {
-            isFalling = true;
-        }
-        if (currentFallDistance <= 0f) {
-            isFalling = false;
-        }
-        prevFallDistance = currentFallDistance;
-
-        if (sprintRestoreTick > 0) {
-            sprintRestoreTick--;
-            if (sprintRestoreTick == 0) {
-                sendSprint(true);
-            }
-        }
-    }
-
-    @EventTarget(value = EventPriority.HIGH)
-    public void onPreMotion(PreMotionEvent event) {
-        if (mc.player == null) return;
-        if (KillAura.INSTANCE.getTarget() == null) return;
-        if (!isFalling) return;
-
-        // KA handed off — send STOP only when KA will actually attack
-        if (kaHandoff) {
-            kaHandoff = false;
-            if (KillAura.INSTANCE.willAttack() && serverSprinting) {
-                sendSprint(false);
-                sprintRestoreTick = 1;
-            }
-            return;
-        }
-
-        // keepSprint OFF path — KA didn't toggle, we manage sprint ourselves
-        if (!isKillAuraAboutToAttack()) return;
-        if (serverSprinting) {
-            sendSprint(false);
-            sprintRestoreTick = 1;
-        }
+        super.onDisable();
     }
 
     @EventTarget
-    public void onPacket(PacketEvent event) {
-        if (mc.player == null) return;
-        if (KillAura.INSTANCE.getTarget() == null){
+    public void onEntityRemove(EntityRemoveEvent entityRemoveEvent) {
+        if (mc.player == null) {
             return;
         }
-        if (event.isIncoming()) return;
-
-        if (event.getPacket() instanceof ServerboundInteractPacket interact) {
-            interact.dispatch(new ServerboundInteractPacket.Handler() {
-                @Override
-                public void onAttack() {
-                    if (!isFalling) return;
-                    if (!serverSprinting) return;
-
-                    event.setCancelled(true);
-                    sendSprint(false);
-                    PacketUtil.sendQueued(
-                            (Packet<ServerGamePacketListener>) event.getPacket());
-                    sprintRestoreTick = 2;
-                }
-
-                @Override
-                public void onInteraction(InteractionHand hand) { }
-
-                @Override
-                public void onInteraction(InteractionHand hand, Vec3 location) { }
-            });
+        boolean canCrit = mc.player.fallDistance > 0.0f && !mc.player.onGround() && !mc.player.onClimbable() && !mc.player.isInWater() && !mc.player.hasEffect(MobEffects.BLINDNESS) && !mc.player.isPassenger() && entityRemoveEvent.entity() instanceof LivingEntity;
+        boolean wasSprinting = mc.player.isSprinting();
+        if (canCrit && !entityRemoveEvent.dead()) {
+            mc.player.resetAttackStrengthTicker();
         }
-    }
-    /**
-     * Set by KillAura's {@code onSprint} on the tick it would normally
-     * call {@code setSprinting(false)}.  Read and cleared by
-     * {@link #onPreMotion} so the STOP is sent at the right time.
-     */
-    public boolean kaHandoff;
-
-    private boolean isKillAuraAboutToAttack() {
-        if (KillAura.INSTANCE == null || !KillAura.INSTANCE.isEnabled()) {
-            return false;
+        if (canCrit && wasSprinting && entityRemoveEvent.dead()) {
+            mc.options.keySprint.setDown(false);
         }
-        return KillAura.INSTANCE.willAttack();
-    }
-
-    private void sendSprint(boolean start) {
-        if (mc.getConnection() == null || mc.player == null) return;
-        final ServerboundPlayerCommandPacket.Action action = start
-                ? ServerboundPlayerCommandPacket.Action.START_SPRINTING
-                : ServerboundPlayerCommandPacket.Action.STOP_SPRINTING;
-        PacketUtil.sendQueued(
-                new ServerboundPlayerCommandPacket(mc.player, action));
-        serverSprinting = start;
-        ChatUtil.print("[Critical] Sprint → " + (start ? "T (START)" : "F (STOP)"));
     }
 }
