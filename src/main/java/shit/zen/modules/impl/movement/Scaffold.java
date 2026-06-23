@@ -197,8 +197,7 @@ public class Scaffold extends Module {
         float distanceFromDiagonal = Math.abs(angleInQuadrant - 45.0f);
         float lerpFactor = 1.0f - (distanceFromDiagonal / 45.0f);
         float baseMultiplier = 1.0f;
-        float maxMultiplier = 1.5f;
-
+        float maxMultiplier = 1.8f;
         return baseMultiplier + (maxMultiplier - baseMultiplier) * lerpFactor;
     }
 
@@ -602,7 +601,7 @@ public class Scaffold extends Module {
                 this.rots.setYawPitch(target.getYaw(), target.getPitch());
                 this.tickRotationSnapshot.setYawPitch(target.getYaw(), target.getPitch());
                 RotationHandler.setTargetRotation(this.rots);
-                ChatUtil.print("Corrected Rotation yawdiff "+ yawDiff +" pitchdiff "+pitchDiff);
+                ChatUtil.print("Corrected Rotation");
             }
         }
         if (this.interactBeforePlace.getValue()) {
