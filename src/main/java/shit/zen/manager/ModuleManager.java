@@ -38,6 +38,7 @@ public class ModuleManager extends ClientBase {
         this.register(new Critical());
         this.register(new CrystalAura());
         this.register(new KillAura());
+        this.register(new FakeLag());
 
         this.register(new Disabler());
         this.register(new FastPlace());
