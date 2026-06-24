@@ -95,6 +95,7 @@ public class Scaffold extends Module {
     private int placeDelayCounter;
     private boolean canBuildNow;
     private boolean needsLookAdjustment;
+    private boolean jumpHeld = false;
 
     public Scaffold() {
         super("Scaffold", Category.MOVEMENT);
@@ -121,6 +122,7 @@ public class Scaffold extends Module {
             this.needsLookAdjustment = false;
             this.packetBatches.clear();
             this.packetBatches.add(new CopyOnWriteArrayList<>());
+            this.jumpHeld = false;
         }
         super.onEnable();
     }
@@ -139,6 +141,7 @@ public class Scaffold extends Module {
             this.canBuildNow = true;
             this.needsLookAdjustment = false;
             this.hitVecSource = null;
+            this.jumpHeld = false;
             ClientBase.delayPackets.clear();
         }
         super.onDisable();
@@ -197,7 +200,13 @@ public class Scaffold extends Module {
         float distanceFromDiagonal = Math.abs(angleInQuadrant - 45.0f);
         float lerpFactor = 1.0f - (distanceFromDiagonal / 45.0f);
         float baseMultiplier = 1.0f;
-        float maxMultiplier = 2.0f;
+        float maxMultiplier;
+        if (this.jumpHeld && lerpFactor > 0.1){
+            maxMultiplier = 2.0f;//ChatUtil.print("jumping "+lerpFactor);
+        }else {
+            maxMultiplier =1.5f;
+        }
+
         return baseMultiplier + (maxMultiplier - baseMultiplier) * lerpFactor;
     }
 
@@ -220,7 +229,7 @@ public class Scaffold extends Module {
             mc.player.getInventory().selected = placeableSlot;
         }
 
-        boolean jumpHeld = InputConstants.isKeyDown(mc.getWindow().getWindow(), mc.options.keyJump.getKey().getValue());
+        this.jumpHeld = InputConstants.isKeyDown(mc.getWindow().getWindow(), mc.options.keyJump.getKey().getValue());
         if (this.targetYLevel == -1
                 || this.targetYLevel > (int) Math.floor(mc.player.getY()) - 1
                 || mc.player.onGround()
