@@ -197,7 +197,7 @@ public class Scaffold extends Module {
         float distanceFromDiagonal = Math.abs(angleInQuadrant - 45.0f);
         float lerpFactor = 1.0f - (distanceFromDiagonal / 45.0f);
         float baseMultiplier = 1.0f;
-        float maxMultiplier = 1.8f;
+        float maxMultiplier = 2.0f;
         return baseMultiplier + (maxMultiplier - baseMultiplier) * lerpFactor;
     }
 
