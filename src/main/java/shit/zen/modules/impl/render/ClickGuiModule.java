@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import shit.zen.gui.NewClickGui;
 import shit.zen.gui.OldClickGui;
 import shit.zen.gui.PanelClickGui;
+import shit.zen.gui.SkeetClickGui;
 import shit.zen.modules.Category;
 import shit.zen.modules.Module;
 import shit.zen.settings.impl.ModeSetting;
@@ -12,7 +13,7 @@ import shit.zen.settings.impl.ModeSetting;
 public class ClickGuiModule
 extends Module {
     public static final Logger LOGGER = LogManager.getLogger(ClickGuiModule.class);
-    public final ModeSetting styleSetting = new ModeSetting("Mode", "Old", "Panel", "New").withDefault("Old");
+    public final ModeSetting styleSetting = new ModeSetting("Mode", "Old", "Panel", "New", "skeet").withDefault("Old");
 
     public ClickGuiModule() {
         super("ClickGui", Category.RENDER, 344);
@@ -25,8 +26,10 @@ extends Module {
                 mc.setScreen(new OldClickGui());
             } else if (this.styleSetting.is("Panel")) {
                 mc.setScreen(PanelClickGui.panelClickGui);
-            } else {
+            } else if (this.styleSetting.is("New")) {
                 mc.setScreen(new NewClickGui());
+            }else {
+                mc.setScreen(new SkeetClickGui());
             }
             LOGGER.info("ClickGUI opened successfully");
         } catch (Exception exception) {

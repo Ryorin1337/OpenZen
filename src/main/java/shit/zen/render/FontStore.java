@@ -23,6 +23,8 @@ public class FontStore {
     public static CustomFont AXIFORMA_EXTRABOLD_16 = loadFont(16.0f, "axiforma_extrabold.ttf");
     public static CustomFont AXIFORMA_EXTRABOLD_18 = loadFont(18.0f, "axiforma_extrabold.ttf");
     public static CustomFont AXIFORMA_BOLD_16 = loadFont(16.0f, "axiforma_bold.ttf");
+    public static CustomFont SKEET_ICONS = loadFont(36.0f, "skeeticons.ttf");
+    public static CustomFont AXIFORMA_REGULAR_12 = loadFont(12.0f, "axiforma_regular.ttf");
 
     @NotNull
     public static CustomFont loadFont(float size, String name) {
