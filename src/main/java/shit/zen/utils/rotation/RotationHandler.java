@@ -29,6 +29,7 @@ import shit.zen.modules.impl.player.AutoMLG;
 import shit.zen.modules.impl.player.AutoWebPlace;
 import shit.zen.modules.impl.player.Helper;
 import shit.zen.modules.impl.player.MidPearl;
+import shit.zen.modules.impl.world.BlockIn;
 import shit.zen.utils.animation.TickTimer;
 import shit.zen.utils.game.MovementUtil;
 import shit.zen.utils.misc.ReflectionUtil;
@@ -93,6 +94,7 @@ extends ClientBase {
             AutoThrow autoThrow = AutoThrow.INSTANCE;
             AntiKB antiKB = AntiKB.INSTANCE;
             MidPearl midPearl = MidPearl.INSTANCE;
+            BlockIn blockIn = BlockIn.INSTANCE;
             isRotating = true;
             if (autoMLG != null && autoMLG.isEnabled() && autoMLG.targetRotation != null) {
                 RotationHandler.setTargetRotation(autoMLG.targetRotation);
@@ -113,6 +115,8 @@ extends ClientBase {
                 RotationHandler.setTargetRotation(AutoWebPlace.targetRotation);
             } else if (autoThrow != null && autoThrow.isEnabled() && autoThrow.targetRotation != null) {
                 RotationHandler.setTargetRotation(autoThrow.targetRotation);
+            } else if (blockIn != null && blockIn.isEnabled() && blockIn.targetRotation != null) {
+                RotationHandler.setTargetRotation(blockIn.targetRotation);
             } else if (scaffold != null && scaffold.isEnabled() && scaffold.rots != null) {
                 RotationHandler.setTargetRotation(scaffold.rots);
             } else if (killAura != null && killAura.isEnabled() && KillAura.target != null && killAura.rotation != null) {
