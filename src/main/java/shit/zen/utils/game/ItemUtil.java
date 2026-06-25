@@ -147,6 +147,13 @@ extends ClientBase {
                 .max(Float::compareTo)
                 .orElse(0.0f);
     }
+    public static ItemStack getBestPowerBow() {
+        return getAllItems()
+                .stream()
+                .filter(item -> !item.isEmpty() && item.getItem() instanceof BowItem &&  isUsable(item))
+                .max(Comparator.comparingInt(s -> (int) (getPowerBowScore(s) * 100.0F)))
+                .orElse(null);
+    }
 
     public static ItemStack getBestSword() {
         return ItemUtil.getAllItems().stream().filter(itemStack -> !itemStack.isEmpty() && itemStack.getItem() instanceof SwordItem).max(Comparator.comparingInt(itemStack -> (int)(ItemUtil.getSwordDamage(itemStack) * 100.0f))).orElse(null);
@@ -541,6 +548,22 @@ extends ClientBase {
             return !displayName.contains("再来");
         }
         return true;
+    }
+    public static float getPowerBowScore(ItemStack stack) {
+        if (stack == null) {
+            return 0.0F;
+        } else if (stack.isEmpty()) {
+            return 0.0F;
+        } else if (stack.getItem() instanceof BowItem) {
+            float valence = 10.0F;
+            valence += (float) EnchantmentHelper.getItemEnchantmentLevel(Enchantments.PUNCH_ARROWS, stack) / 10.0F;
+            valence += (float) EnchantmentHelper.getItemEnchantmentLevel(Enchantments.INFINITY_ARROWS, stack);
+            valence += (float) EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FLAMING_ARROWS, stack);
+            valence += (float) EnchantmentHelper.getItemEnchantmentLevel(Enchantments.POWER_ARROWS, stack);
+            return valence + (float) stack.getDamageValue() / (float) stack.getMaxDamage();
+        } else {
+            return 0.0F;
+        }
     }
 
     public static int findItemInRange(int startSlot, int endSlot, Item item) {
