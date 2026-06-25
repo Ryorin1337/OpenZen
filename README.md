@@ -27,18 +27,21 @@ OpenZen 支持两种交付形式：**Java Agent jar**（挂到 Minecraft JVM 启
 
 ### 编译时类名混淆（重要）
 
-每次构建，OpenZen 会**自动把所有自有类(`shit.zen.*` / `asm.patchify.*`)重命名为随机的 16 位名字**——包名和类名都随机，**每次构建都不一样**、互不重复，原始类名/包名一律不保留(连日志里残留的类名字符串也清理掉了)。引导链(Agent 入口、DLL 加载、`Class.forName`)会在构建时自动联动到新名字，无需手工处理。两种交付形式(jar / 注入器)都已混淆。
+每次构建，OpenZen 会**自动把所有自有类(`shit.zen.*` / `asm.patchify.*`)重命名为随机的 16 位名字**——包名和类名都随机，**每次构建都不一样**、互不重复。引导链会在构建时自动联动到新名字，无需手工处理。
 
-这是为了对抗按**类名黑名单**工作的反作弊(见下方[常见问题](#布吉岛反作弊绕过))。正因为名字每次构建随机：
+这是为了对抗按**类名黑名单**工作的反作弊。正因为名字每次构建随机，且为了防止统一编译的成品被反作弊集体拉黑，**本仓库不提供任何预编译版本（不提供 Release 交付物）**。
 
-> ⚠️ **从 GitHub Actions / Release 下载到的是预编译版本，所有人拿到的是同一套混淆名**——这套固定的名字随时可能被反作弊收录进黑名单。想要一套**别人都不知道、独一无二**的类名，请**自己编译**：
-> - **Fork 本仓库**，在你自己的 GitHub Actions 里跑一次构建(每次运行都生成全新随机名)，下载你自己的 artifact；**或**
-> - **clone 到本地**自己 `gradlew jar` / `gradlew dll`(每次本地构建同样是全新随机名)。
+想要一套**别人都不知道、独一无二**的类名，请**自行编译**：
 
-每次构建的"旧名 → 新名"映射写在 `build/rename-mapping.txt`(CI 也会把它作为 artifact 上传、并附到 Release)，这是反混淆崩溃日志的**唯一**依据。**注意它每次构建都不同，务必和对应产物一起保存。**
+>  **方式一：GitHub Actions 云端构建，**
+  **Fork 本仓库**，在你自己的 GitHub Actions 里跑一次构建（每次运行都生成全新随机名），下载你自己的 artifact。
+> 
+>  **方式二：本地自行编译**
+  **Clone 本仓库到本地**，自己执行 `./gradlew jar` 或 `./gradlew dll`（每次本地构建同样是全新随机名）。
 
-实现细节见 `build.gradle` 的 `ext.obfuscateJar`：用项目自带的 ASM 在 ForgeGradle `reobf` 之后对产出 jar 做 `ClassRemapper` 重命名，**只改类名、不动方法/字段名**(避免破坏反射、JNI、`@SerializedName` 等)。
+每次构建的"旧名 → 新名"映射写在 `build/rename-mapping.txt`（CI 也会把它作为 artifact 上传），这是反混淆崩溃日志的**唯一**依据。**注意它每次构建都不同，务必和对应产物一起保存。**
 
+实现细节见 `build.gradle` 的 `ext.obfuscateJar`：用项目自带的 ASM 在 ForgeGradle `reobf` 之后对产出 jar 做 `ClassRemapper` 重命名，**只改类名、不动方法/字段名**（避免破坏反射、JNI 等）。
 ### 共同前置
 
 - **JDK 17**（推荐 Microsoft Build of OpenJDK / Temurin / Azul Zulu 任一）。
@@ -103,7 +106,7 @@ OpenZen 支持两种交付形式：**Java Agent jar**（挂到 Minecraft JVM 启
 产物：`build/dist/OpenZenLoader.exe`。如果已装 UPX 想顺便压缩，跑 `.\gradlew.bat upxCompress`。
 
 #### 使用注入器
-
+>⚠️ 不保证注入器能绕过任何反注入检测
 1. 用 HMCL / Forge 启动器正常启动 Minecraft 1.20.1 Forge（**不需要**任何特殊 JVM 参数）。
 2. 双击 `OpenZenLoader.exe`。
 3. GUI 自动列出系统里**所有 Minecraft 实例**，每秒自动刷新一次。
