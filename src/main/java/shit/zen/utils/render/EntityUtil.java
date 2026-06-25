@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
 import shit.zen.utils.rotation.RotationHandler;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.lang.reflect.Field;
 
 public class EntityUtil {
 
@@ -87,20 +88,20 @@ public class EntityUtil {
 
             WalkAnimationState origAnim = origLiving.walkAnimation;
             WalkAnimationState fakeAnim = fakeLiving.walkAnimation;
-            float origSpeed = origAnim.speed();
-            float origSpeedOld = 2.0F * origAnim.speed(0.5F) - origSpeed;
-            float origPosition = origAnim.position();
-            fakeAnim.setSpeed(origSpeedOld);
-            fakeAnim.update(origSpeed, 1.0F);
-            float currentFakePos = fakeAnim.position();
-            float deltaPos = origPosition - currentFakePos;
-            fakeAnim.setSpeed(fakeAnim.speed() - deltaPos);
-            fakeAnim.update(origSpeed, 1.0F);
+            copyWalkAnimation(origAnim, fakeAnim);
         }
 
         return fake;
     }
-
+    private static void copyWalkAnimation(WalkAnimationState from, WalkAnimationState to) {
+        try {
+            for (Field field : WalkAnimationState.class.getDeclaredFields()) {
+                field.setAccessible(true);
+                field.set(to, field.get(from));
+            }
+        } catch (Exception ignored) {
+        }
+    }
     public static void clearCache() {
         FAKE_ENTITY_CACHE.clear();
     }
