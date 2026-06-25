@@ -1,5 +1,7 @@
 # Open Zen Ryorin1337‘s build
 
+> 如果你喜欢本项目 欢迎添加群聊 752327855
+
 **Open Zen** 是 *Zen* Minecraft 客户端的反混淆源码版本，几乎是由 [Claude](https://claude.com/) 协助逆向得到。目标版本为 **Minecraft 1.20.1 + Forge 47.4.20**。
 原始 Jar 经过完整混淆：类/字段/方法重命名、控制流扁平化。原仓库所有者[margele](https://github.com/Margele/)使用 Opus 4.7 对其进行了反混淆，并结合 [Enigma MCP](https://github.com/Margele/Enigma-MCP) 和 Sonnet 4.6 对其类/字段/方法重命名进行猜测，最后将其还原为可读的 Java。最终产物是一个可以直接用 Gradle 构建的工程，而不是一个二进制 blob。
 
