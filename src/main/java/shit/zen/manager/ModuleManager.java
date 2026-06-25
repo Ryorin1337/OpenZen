@@ -48,15 +48,12 @@ public class ModuleManager extends ClientBase {
         this.register(new AutoRod());
         this.register(new SafeWalk());
 
-        this.register(new CollisionSpeed());
         this.register(new NoSlow());
         this.register(new FastWeb());
         this.register(new FireballBlink());
         this.register(new Fly());
-        this.register(new GuiMove());
         this.register(new HighJump());
         this.register(new NoDelay());
-        this.register(new NoPush());
         this.register(new Scaffold());
         this.register(new Sprint());
         this.register(new TargetStrafe());
