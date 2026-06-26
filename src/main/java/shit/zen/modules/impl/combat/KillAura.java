@@ -39,6 +39,7 @@ import shit.zen.modules.Category;
 import shit.zen.modules.Module;
 import shit.zen.modules.impl.combat.antikb.NoXZMode;
 import shit.zen.modules.impl.combat.Critical;
+import shit.zen.modules.impl.movement.Scaffold;
 import shit.zen.modules.impl.player.AntiTNT;
 import shit.zen.modules.impl.player.AntiWeb;
 import shit.zen.modules.impl.player.AutoWebPlace;
@@ -215,7 +216,8 @@ public class KillAura extends Module {
                 || AntiWeb.targetRotation != null
                 || AntiTNT.targetRotation != null
                 || MidPearl.targetRotation != null
-                || this.isWebPlacing()) {
+                || this.isWebPlacing()
+                || (!(Scaffold.INSTANCE == null) && Scaffold.INSTANCE.isEnabled())) {
             target = null;
             aimingTarget = null;
             this.currentBestHit = null;
