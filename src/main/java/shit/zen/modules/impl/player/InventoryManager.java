@@ -333,6 +333,7 @@ public class InventoryManager extends Module {
 
         if (this.shouldPauseForAction()
                 || mc.player.isUsingItem()
+                || (Scaffold.INSTANCE != null && Scaffold.INSTANCE.isEnabled())
                 || (moving && (!this.silentManageSetting.getValue() || this.inventoryOnlySetting.getValue()))
                 || (!this.silentManageSetting.getValue() && !(mc.screen instanceof InventoryScreen))) {
             this.clickOffHand = false;

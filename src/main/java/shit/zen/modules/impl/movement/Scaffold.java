@@ -68,7 +68,7 @@ public class Scaffold extends Module {
     public final BooleanSetting renderAimPoint = new BooleanSetting("Render Aim Point", false);
     public final BooleanSetting interactBeforePlace = new BooleanSetting("Interact item before place", false);
     public final NumberSetting rotationTick = new NumberSetting("Rotation Tick", 3, 1, 6, 1);
-    public final NumberSetting placeDelay = new NumberSetting("Place Delay", 1, 1, 5, 1);
+    public final NumberSetting placeDelay = new NumberSetting("Place Delay", 1, 0, 5, 1);
     public final BooleanSetting clutch = new BooleanSetting("Clutch", true);
     public final BooleanSetting clutchTestMode = new BooleanSetting("Clutch Verify target", false, () -> clutch.getValue());
 
@@ -202,11 +202,10 @@ public class Scaffold extends Module {
         float baseMultiplier = 1.0f;
         float maxMultiplier;
         if (this.jumpHeld && lerpFactor > 0.1){
-            maxMultiplier = 2.0f;//ChatUtil.print("jumping "+lerpFactor);
+            maxMultiplier = (float) (1.5f + (placeDelay.getValue().intValue() * 0.5));
         }else {
             maxMultiplier =1.5f;
         }
-
         return baseMultiplier + (maxMultiplier - baseMultiplier) * lerpFactor;
     }
 
