@@ -64,11 +64,12 @@ public class Scaffold extends Module {
     public final BooleanSetting sneak = new BooleanSetting("Sneak", true);
     public final BooleanSetting snap = new BooleanSetting("Snap", true, () -> this.mode.is("Normal"));
     public final BooleanSetting smoothTelly = new BooleanSetting("Smooth", false, () -> this.mode.is("Telly Bridge"));
-    public final BooleanSetting renderItemSpoof = new BooleanSetting("Render Item Spoof", true);
-    public final BooleanSetting renderAimPoint = new BooleanSetting("Render Aim Point", false);
+    public final BooleanSetting correctSmoothRotation = new BooleanSetting("Correct rotation",false,  () -> this.mode.is("Telly Bridge") &&smoothTelly.getValue());
     public final BooleanSetting interactBeforePlace = new BooleanSetting("Interact item before place", false);
     public final NumberSetting rotationTick = new NumberSetting("Rotation Tick", 3, 1, 6, 1);
     public final NumberSetting placeDelay = new NumberSetting("Place Delay", 1, 0, 5, 1);
+    public final BooleanSetting renderItemSpoof = new BooleanSetting("Render Item Spoof", true);
+    public final BooleanSetting renderAimPoint = new BooleanSetting("Render Aim Point", false);
     public final BooleanSetting clutch = new BooleanSetting("Clutch", true);
     public final BooleanSetting clutchTestMode = new BooleanSetting("Clutch Verify target", false, () -> clutch.getValue());
 
@@ -85,7 +86,7 @@ public class Scaffold extends Module {
     private int groundTicks = 0;
     private int airTicks = 0;
     private int rotationDelay = 0;
-    private final CopyOnWriteArrayList<CopyOnWriteArrayList<Packet<?>>> packetBatches = new CopyOnWriteArrayList<>();
+
     private int jitterCounter;
     private double yawDiff;
     private double pitchDiff;
@@ -120,8 +121,7 @@ public class Scaffold extends Module {
             this.tickRotationSnapshot = new Rotation();
             this.canBuildNow = true;
             this.needsLookAdjustment = false;
-            this.packetBatches.clear();
-            this.packetBatches.add(new CopyOnWriteArrayList<>());
+
             this.jumpHeld = false;
         }
         super.onEnable();
@@ -130,8 +130,7 @@ public class Scaffold extends Module {
     @Override
     public void onDisable() {
         if (mc != null && mc.player != null) {
-            this.packetBatches.forEach(this::processBatchedPackets);
-            this.packetBatches.clear();
+
             boolean jumpDown = InputConstants.isKeyDown(mc.getWindow().getWindow(), mc.options.keyJump.getKey().getValue());
             boolean shiftDown = InputConstants.isKeyDown(mc.getWindow().getWindow(), mc.options.keyShift.getKey().getValue());
             mc.options.keyJump.setDown(jumpDown);
@@ -147,12 +146,6 @@ public class Scaffold extends Module {
         super.onDisable();
     }
 
-    private void processBatchedPackets(List<Packet<?>> batch) {
-        batch.forEach(packet -> {
-            batch.remove(packet);
-            PacketUtil.sendQueued((Packet<ServerGamePacketListener>) packet);
-        });
-    }
 
     @EventTarget
     public void onPacket(PacketEvent event) {
@@ -212,7 +205,6 @@ public class Scaffold extends Module {
     @EventTarget(value = 1)
     public void onTick(TickEvent event) {
         if (mc.player == null) return;
-        this.packetBatches.add(new CopyOnWriteArrayList<>());
         if (this.velocityDelay > 0) this.velocityDelay--;
         if (mc.player.onGround() && this.velocityDelay <= 30) this.velocityDelay = 0;
 
@@ -605,11 +597,16 @@ public class Scaffold extends Module {
 
             double pitchDiff =
                     Math.abs(target.getPitch() - sent.getPitch());
-            if (yawDiff > 12.0 || pitchDiff > 8.0) {
-                this.rots.setYawPitch(target.getYaw(), target.getPitch());
-                this.tickRotationSnapshot.setYawPitch(target.getYaw(), target.getPitch());
-                RotationHandler.setTargetRotation(this.rots);
-                ChatUtil.print("Corrected Rotation");
+            if ((yawDiff > 12.0 || pitchDiff > 8.0) ) {
+                if (correctSmoothRotation.getValue()) {
+                    this.rots.setYawPitch(target.getYaw(), target.getPitch());
+                    this.tickRotationSnapshot.setYawPitch(target.getYaw(), target.getPitch());
+                    RotationHandler.setTargetRotation(this.rots);
+                    ChatUtil.print("Corrected Rotation");}
+                else  {
+                    ChatUtil.print("Ignored Place");
+                    return;
+                }
             }
         }
         if (this.interactBeforePlace.getValue()) {
