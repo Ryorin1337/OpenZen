@@ -88,6 +88,7 @@ public class ModuleManager extends ClientBase {
         this.register(new Projectiles());
         this.register(new Watermark());
         this.register(new XRay());
+        this.register(new FakeAntiAim());
         this.register(new EntityEditor());
 
         this.register(new KillSay());
