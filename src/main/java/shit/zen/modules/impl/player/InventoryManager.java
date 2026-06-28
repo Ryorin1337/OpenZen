@@ -486,12 +486,7 @@ public class InventoryManager extends Module {
             ItemStack bestProjectile = ItemUtil.getBestProjectile();
             if (bestProjectile != null) {
                 int slot = ItemUtil.getSlot(bestProjectile);
-                boolean shouldSwap = false;
-                if (offHand.getItem() != Items.EGG && offHand.getItem() != Items.SNOWBALL) {
-                    shouldSwap = true;
-                } else if (offHand.getCount() < bestProjectile.getCount()) {
-                    shouldSwap = true;
-                }
+                boolean shouldSwap = offHand.getItem() != Items.EGG && offHand.getItem() != Items.SNOWBALL;
 
                 if (shouldSwap && slot != -1) {
                     if (actionTimer.hasPassed(currentDelayMs)) {
@@ -514,14 +509,7 @@ public class InventoryManager extends Module {
             ItemStack bestBlock = ItemUtil.getBestBlock();
             if (bestBlock != null) {
                 int slot = ItemUtil.getSlot(bestBlock);
-                boolean shouldSwap = false;
-                if (BlockUtil.isPlaceable(offHand)) {
-                    if (offHand.getCount() < bestBlock.getCount()) {
-                        shouldSwap = true;
-                    }
-                } else {
-                    shouldSwap = true;
-                }
+                boolean shouldSwap = !BlockUtil.isPlaceable(offHand);
 
                 if (shouldSwap && slot != -1) {
                     if (actionTimer.hasPassed(currentDelayMs)) {
@@ -542,7 +530,7 @@ public class InventoryManager extends Module {
             int blockSlot = (int) (this.blockSlotSetting.getValue().intValue() - 1);
             ItemStack currentBlock = mc.player.getInventory().items.get(blockSlot);
             ItemStack bestBlock = ItemUtil.getBestBlock();
-            if (bestBlock != null && (bestBlock.getCount() > currentBlock.getCount() || !BlockUtil.isPlaceable(currentBlock))) {
+            if (bestBlock != null && !BlockUtil.isPlaceable(currentBlock)) {
                 if (this.swapItem(blockSlot, bestBlock)) {
                     return;
                 }
@@ -994,8 +982,7 @@ public class InventoryManager extends Module {
         ItemStack currentSlot = mc.player.getInventory().items.get(targetSlot);
         int bestItemSlot = ItemUtil.getSlot(item);
         if (bestItemSlot != -1) {
-            ItemStack bestItemStack = mc.player.getInventory().items.get(bestItemSlot);
-            if (currentSlot.getItem() != item || currentSlot.getCount() < bestItemStack.getCount()) {
+            if (currentSlot.getItem() != item) {
                 float requiredDelayMs = (float) MathUtil.randomInt(this.minDelaySetting.getValue().intValue(), this.maxDelaySetting.getValue().intValue()) * 50F;
                 if (actionTimer.hasPassed(requiredDelayMs)) {
                     int source = bestItemSlot < 9 ? bestItemSlot + 36 : bestItemSlot;
