@@ -118,7 +118,7 @@ extends ClientBase {
                 RotationHandler.setTargetRotation(autoThrow.targetRotation);
             } else if (blockIn != null && blockIn.isEnabled() && blockIn.targetRotation != null) {
                 RotationHandler.setTargetRotation(blockIn.targetRotation);
-            } else if (scaffold != null && scaffold.isEnabled() && scaffold.rots != null) {
+            } else if (scaffold != null && scaffold.isEnabled() && scaffold.rots != null && scaffold.wantsRotation) {
                 RotationHandler.setTargetRotation(scaffold.rots);
             } else if (killAura != null && killAura.isEnabled() && KillAura.target != null && killAura.rotation != null) {
                 RotationHandler.setTargetRotation(new Rotation(killAura.rotation.getYaw(), killAura.rotation.getPitch()));
