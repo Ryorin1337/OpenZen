@@ -557,7 +557,7 @@ public class Scaffold extends Module {
         int dy = Math.max(0, this.targetYLevel - pos.getY());
         double score = -(dx + dz + dy) + dot * 0.25;
         if (support.equals(this.lastPlacedBlock)) {
-            score += 2D;
+            score += 1.5D;
         }
         // 尽量不要贴方块的下表面（朝下放置），只有在没有其它可用面时才作为兜底
         if (facing == Direction.DOWN) {
