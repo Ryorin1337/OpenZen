@@ -15,6 +15,7 @@ import shit.zen.ZenClient;
 import shit.zen.asm.Invocation;
 import shit.zen.event.impl.RenderEntityEvent;
 import shit.zen.event.impl.RotationAnimationEvent;
+import shit.zen.modules.impl.render.FakeAntiAim;
 
 @Patch(LivingEntityRenderer.class)
 public class LivingEntityRendererPatch {
@@ -31,7 +32,30 @@ public class LivingEntityRendererPatch {
         ZenClient.getInstance().getEventBus().call(pre);
         if (pre.isCancelled()) {
             callbackInfo.cancel();
+            return;
         }
+        applyFakeAntiAimHead(entity, partialTick);
+    }
+
+
+    private static boolean headPoked = false;
+    private static float savedYHeadRot, savedYHeadRotO;
+
+    private static void applyFakeAntiAimHead(LivingEntity entity, float partialTick) {
+        headPoked = false;
+        FakeAntiAim faa = FakeAntiAim.INSTANCE;
+        if (faa == null || !faa.isEnabled() || entity != ClientBase.mc.player) return;
+        if (!faa.headYawActive()) return;
+
+        int tick = entity.tickCount;
+        float time = tick + partialTick;
+        savedYHeadRot = entity.yHeadRot;
+        savedYHeadRotO = entity.yHeadRotO;
+        headPoked = true;
+
+        float off = faa.headYawOffset(time, tick);
+        entity.yHeadRot += off;
+        entity.yHeadRotO += off;
     }
 
     @Inject(
@@ -42,6 +66,11 @@ public class LivingEntityRendererPatch {
     public static void onRenderPost(
             LivingEntityRenderer<?, ?> renderer, LivingEntity entity, float yaw, float partialTick,
             PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, CallbackInfo callbackInfo) {
+        if (headPoked && entity == ClientBase.mc.player) {
+            entity.yHeadRot = savedYHeadRot;
+            entity.yHeadRotO = savedYHeadRotO;
+            headPoked = false;
+        }
         if (!ZenClient.isReady()) return;
         RenderEntityEvent.Pre post = new RenderEntityEvent.Pre(renderer, entity, poseStack, bufferSource, partialTick, packedLight);
         ZenClient.getInstance().getEventBus().call(post);

@@ -23,6 +23,7 @@ import shit.zen.modules.impl.combat.CrystalAura;
 import shit.zen.modules.impl.combat.KillAura;
 import shit.zen.modules.impl.movement.FireballBlink;
 import shit.zen.modules.impl.movement.Scaffold;
+import shit.zen.modules.impl.render.FakeAntiAim;
 import shit.zen.modules.impl.player.AntiTNT;
 import shit.zen.modules.impl.player.AntiWeb;
 import shit.zen.modules.impl.player.AutoMLG;
@@ -131,6 +132,7 @@ extends ClientBase {
 
     @EventTarget
     public void onHeadTurn(RotationAnimationEvent e) {
+        if (isFakeAntiAimOverriding()) return;
         if (sentRotation != null && prevSentRotation != null && mc.player != null && isRotating) {
             e.setYaw(sentRotation.getYaw());
             e.setLastYaw(prevSentRotation.getYaw());
@@ -142,9 +144,16 @@ extends ClientBase {
 
     @EventTarget
     public void onCameraPitch(CameraPitchEvent cameraPitchEvent) {
+        if (isFakeAntiAimOverriding()) return;
         if (sentRotation != null && prevSentRotation != null) {
             cameraPitchEvent.setPitch(sentRotation.getPitch());
         }
+    }
+
+
+    private static boolean isFakeAntiAimOverriding() {
+        FakeAntiAim faa = FakeAntiAim.INSTANCE;
+        return faa != null && faa.isEnabled() && faa.overrideRotation.getValue();
     }
 
     @EventTarget(value=4)
