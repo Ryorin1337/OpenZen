@@ -69,10 +69,10 @@ public class InventoryManager extends Module {
     private final BooleanSetting throwItemsSetting = new BooleanSetting("Throw Items", true);
 
     // Silent management
-    private final BooleanSetting silentManageSetting = new BooleanSetting("Silent Manage", false);
+    private final BooleanSetting silentManageSetting = new BooleanSetting("Bypass Silent Manage", false);
     private final BooleanSetting inventoryOnlySetting = new BooleanSetting("Inventory Only", false);
     // Offhand settings
-    private final ModeSetting offhandItemSetting = new ModeSetting("Offhand Items", "None", "Golden Apple", "Projectile", "Fishing Rod", "Block");
+    private final ModeSetting offhandItemSetting = new ModeSetting("Offhand Items", "None", "Golden Apple", "Projectile", "Fishing Rod", "Block").withDefault("None");
 
     // Hotbar slot assignments
     private final BooleanSetting switchSwordSetting = new BooleanSetting("Switch Sword", true);
@@ -90,7 +90,7 @@ public class InventoryManager extends Module {
 
     private final BooleanSetting switchBowSetting = new BooleanSetting("Switch Bow or Crossbow", true);
     private final NumberSetting bowSlotSetting = new NumberSetting("Bow Slot", 5, 1, 9, 1);
-    private final ModeSetting bowPrioritySetting = new ModeSetting("Bow Priority", "Crossbow", "Power Bow", "Punch Bow");
+    private final ModeSetting bowPrioritySetting = new ModeSetting("Bow Priority", "Crossbow", "Power Bow", "Punch Bow").withDefault("Power Bow");
     private final NumberSetting maxArrowSizeSetting = new NumberSetting("Max Arrow Size", 256, 64, 512, 64);
 
     private final BooleanSetting switchWaterBucketSetting = new BooleanSetting("Switch Water Bucket", true);
