@@ -44,6 +44,7 @@ import shit.zen.event.impl.PacketEvent;
 import shit.zen.event.impl.SprintEvent;
 import shit.zen.modules.Category;
 import shit.zen.modules.Module;
+import shit.zen.modules.impl.combat.KillAura;
 import shit.zen.modules.impl.movement.NoSlow;
 import shit.zen.modules.impl.movement.Scaffold;
 import shit.zen.settings.impl.BooleanSetting;
@@ -296,6 +297,22 @@ public class InventoryManager extends Module {
             return;
         }
 
+        // Scaffold 或 KillAura 正在执行动作时，不整理、不停止疾跑，释放压制让 Sprint 模块恢复疾跑
+        if (this.shouldPauseForAction()) {
+            this.suppressSprint = false;
+            this.suppressSprintTicks = 0;
+            this.movingSilentAction = false;
+            this.movingSilentWaiting = false;
+            this.movingSilentDelayTicks = 0;
+            this.wasSprinting = false;
+            this.clickOffHand = false;
+            this.pendingMovingSilentPackets.clear();
+            this.pendingSilentThrowSlot = -1;
+            this.pendingSilentThrowButton = 0;
+            this.pendingSilentThrowTicks = 0;
+            return;
+        }
+
         boolean hasPendingInventoryActions = this.shouldSuppressSprint();
         boolean movingSilentBusy = this.shouldPauseMovingSilentSprint();
 
@@ -328,11 +345,6 @@ public class InventoryManager extends Module {
         }
 
         if (this.runPendingSilentThrow()) {
-            return;
-        }
-
-        if (this.shouldPauseForAction()) {
-            this.clickOffHand = false;
             return;
         }
 
@@ -607,43 +619,8 @@ public class InventoryManager extends Module {
 
         if (this.switchBowSetting.getValue()) {
             int slot = (int) (this.bowSlotSetting.getValue().intValue() - 1);
-            ItemStack currentBow = mc.player.getInventory().items.get(slot);
-            ItemStack bestBow;
-            float bestBowScore;
-            float currentBowScore;
-            if ("Crossbow".equals(this.bowPrioritySetting.getValue())) {
-                bestBow = ItemUtil.getBestCrossbow();
-                bestBowScore = ItemUtil.getCrossbowScore(bestBow);
-                currentBowScore = ItemUtil.getCrossbowScore(currentBow);
-            } else if ("Power Bow".equals(this.bowPrioritySetting.getValue())) {
-                bestBow = ItemUtil.getBestBow();
-                bestBowScore = ItemUtil.getPowerBowScore(bestBow);
-                currentBowScore = ItemUtil.getPowerBowScore(currentBow);
-            } else {
-                bestBow = ItemUtil.getBestBow();
-                bestBowScore = ItemUtil.getBowScore(bestBow);
-                currentBowScore = ItemUtil.getBowScore(currentBow);
-            }
-
-            if (bestBow == null) {
-                bestBow = ItemUtil.getBestCrossbow();
-                bestBowScore = ItemUtil.getCrossbowScore(bestBow);
-                currentBowScore = ItemUtil.getCrossbowScore(currentBow);
-            }
-
-            if (bestBow == null) {
-                bestBow = ItemUtil.getBestPowerBow();
-                bestBowScore = ItemUtil.getPowerBowScore(bestBow);
-                currentBowScore = ItemUtil.getPowerBowScore(currentBow);
-            }
-
-            if (bestBow == null) {
-                bestBow = ItemUtil.getBestBow();
-                bestBowScore = ItemUtil.getBowScore(bestBow);
-                currentBowScore = ItemUtil.getBowScore(currentBow);
-            }
-
-            if (bestBow != null && bestBowScore > currentBowScore) {
+            ItemStack bestBow = this.getBowToSwap();
+            if (bestBow != null) {
                 if (this.swapItem(slot, bestBow)) {
                     return;
                 }
@@ -718,6 +695,54 @@ public class InventoryManager extends Module {
         }
     }
 
+    private ItemStack getBowToSwap() {
+        if (!this.switchBowSetting.getValue() || mc.player == null) {
+            return null;
+        }
+
+        int slot = this.bowSlotSetting.getValue().intValue() - 1;
+        ItemStack currentBow = mc.player.getInventory().items.get(slot);
+        ItemStack bestBow;
+        float bestBowScore;
+        float currentBowScore;
+        if ("Crossbow".equals(this.bowPrioritySetting.getValue())) {
+            bestBow = ItemUtil.getBestCrossbow();
+            bestBowScore = ItemUtil.getCrossbowScore(bestBow);
+            currentBowScore = ItemUtil.getCrossbowScore(currentBow);
+        } else if ("Power Bow".equals(this.bowPrioritySetting.getValue())) {
+            bestBow = ItemUtil.getBestBow();
+            bestBowScore = ItemUtil.getPowerBowScore(bestBow);
+            currentBowScore = ItemUtil.getPowerBowScore(currentBow);
+        } else {
+            bestBow = ItemUtil.getBestBow();
+            bestBowScore = ItemUtil.getBowScore(bestBow);
+            currentBowScore = ItemUtil.getBowScore(currentBow);
+        }
+
+        if (bestBow == null) {
+            bestBow = ItemUtil.getBestCrossbow();
+            bestBowScore = ItemUtil.getCrossbowScore(bestBow);
+            currentBowScore = ItemUtil.getCrossbowScore(currentBow);
+        }
+
+        if (bestBow == null) {
+            bestBow = ItemUtil.getBestPowerBow();
+            bestBowScore = ItemUtil.getPowerBowScore(bestBow);
+            currentBowScore = ItemUtil.getPowerBowScore(currentBow);
+        }
+
+        if (bestBow == null) {
+            bestBow = ItemUtil.getBestBow();
+            bestBowScore = ItemUtil.getBowScore(bestBow);
+            currentBowScore = ItemUtil.getBowScore(currentBow);
+        }
+
+        if (bestBow != null && bestBowScore > currentBowScore) {
+            return bestBow;
+        }
+        return null;
+    }
+
     public boolean isItemUseful(ItemStack stack) {
         if (stack.isEmpty()) {
             return false;
@@ -788,7 +813,9 @@ public class InventoryManager extends Module {
     }
 
     private boolean shouldPauseForAction() {
-        return (Scaffold.INSTANCE != null && Scaffold.INSTANCE.isEnabled()) || isNoSlowActive();
+        if (Scaffold.INSTANCE != null && Scaffold.INSTANCE.isEnabled()) return true;
+        if (KillAura.INSTANCE != null && KillAura.INSTANCE.isEnabled() && KillAura.target != null) return true;
+        return isNoSlowActive();
     }
 
     public boolean isSuppressingSprint() {
@@ -894,6 +921,18 @@ public class InventoryManager extends Module {
         if (this.switchAxeSetting.getValue()) {
             int slot = (int) (this.axeSlotSetting.getValue().intValue() - 1);
             if (ItemUtil.getBestAxe() != null && mc.player.getInventory().items.get(slot) != ItemUtil.getBestAxe()) return true;
+        }
+
+        if (this.switchBowSetting.getValue()) {
+            if (this.getBowToSwap() != null) return true;
+            if (ItemUtil.countItem(Items.ARROW) > this.maxArrowSizeSetting.getValue().intValue()) return true;
+        }
+
+        if (ItemUtil.countBlocks() > this.maxBlockSizeSetting.getValue().intValue()) return true;
+
+        if (this.keepProjectileSetting.getValue()
+                && ItemUtil.countItem(Items.EGG) + ItemUtil.countItem(Items.SNOWBALL) > this.maxProjectileSizeSetting.getValue().intValue()) {
+            return true;
         }
 
         if (this.switchWaterBucketSetting.getValue()) {
